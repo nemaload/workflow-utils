@@ -28,7 +28,8 @@ This tool is written in **C** and **Python**, and leverages the ImageMagick libr
 #### Name
 *tiff2hdf* - Converts tiff files to HDF5 datasets.
 #### Synopsis
-`tiff2hdf \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`
+`tiff2hdf \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`   
+
 `tiff2hdf \[LONG-OPTION\]`
 #### Options
 **-a**  
