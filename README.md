@@ -31,17 +31,28 @@ This tool is written in **C** and **Python**, and leverages the ImageMagick libr
 `tiff2hdf \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`
 `tiff2hdf \[LONG-OPTION\]`
 #### Options
-**-a** 
+**-a**  
+
 Convert all TIFFs in current directory to HDF5 datasets, output in current directory.
-**-o** 
+
+**-o**  
+
 Overwrite all existing HDF5 files in directory.
-**-r**
+
+**-r**  
+
 Convert TIFFs to raw images, not HDF5 datasets.
-**-c**
+
+**-c**  
+
 Accelerate RGB to grayscale conversionsion with OpenCL(requires OpenCL dependencies)
-**-b N**
+
+**-b N**  
+
 Convert all TIFFsFF files to HDF5 datasets with _N_ bit integers, where _N_ is a valid number of bits (see HDF5 documentation.) The default bit depth is 16 bits.
-**--help** 
+
+**--help**   
+
 Shows documentationcumentation.
 
 ## autorectify-accelerated
@@ -49,7 +60,7 @@ This tool is an **OpenCL C** port of *pasky*'s autorectify code originally for *
 
 * **OpenCL** acceleration of autorectification
 
- * **HDF5** metadata support
+* **HDF5** metadata support
 
 * Support for **HDF5** videos.
 
@@ -58,14 +69,20 @@ autorectify-accelerated is written in **OpenCL C**, and is optmized for the **GP
 ### Dependencies
 * **HDF5** header files
 * **OpenCL** libraries
+
 ### User Guide
+
 #### Name
-*autorectify-accelerated* - generates lenslet rectification data.
+*autorectify-accelerated* - generates lenslet rectification data.  
+
 #### Synopsis
-`autorectify-accelerated \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`
+`autorectify-accelerated \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`  
+
 `autorectify-accelerated \[LONG-OPTION\]`
+
 #### Options
-**-t**
+**-t**  
+
 Output autorectification data to text files instead of **HDF5** metadata.
 
 
