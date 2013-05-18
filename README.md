@@ -28,7 +28,7 @@ This tool is written in **C** and **Python**, and leverages the ImageMagick libr
 #### Name
 *tiff2hdf* - Converts tiff files to HDF5 datasets.
 #### Synopsis
-`hdf5convert.py [-h] [-s] [-a] [-o] [-r] [-c] [-b BITDEPTH] input output` 
+`tiff2hdf.py [-h] [-s] [-a] [-o] [-r] [-c] [-b BITDEPTH] input output` 
 
 #### Options
 **-a**  
@@ -53,7 +53,7 @@ Convert all TIFFsFF files to HDF5 datasets with _N_ bit integers, where _N_ is a
 
 **--help**   
 
-Shows documentationcumentation.
+Shows documentation.
 
 ## autorectify-accelerated
 This tool is an **OpenCL C** port of *pasky*'s autorectify code originally for *LFDisplay*. It processes **HDF5** images and **TIFF** stacks, and outputs rectification data. Some features of this program include:

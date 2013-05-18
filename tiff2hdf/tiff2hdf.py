@@ -23,8 +23,9 @@
 # NEMALOAD
 # nemaload.com
 
-import sys, argparse, os, ctypes, numpy, h5py
-from wand.image import Image 
+import sys, argparse, os, ctypes, numpy, h5py, Image, subprocess
+
+from wand.image import Image
 
 class imageConversion:
 	def __init__(self):
@@ -94,12 +95,21 @@ class imageConversion:
 		else:
 			return false
 
-	#def convertToGrayscale(self):
+	def setBitDepth(self, bitDepth):
+		self.bitdepth = bitDepth
+
+	def convertToGrayscale(self):
 	#REQUIRES: self is an RGB image, can be converted, and OpenCL is all set up
-	#EFFECTS: converts RGB to grayscale iamge
-
-
-
+	#EFFECTS: converts RGB to grayscale image
+		subprocess.call(["./tiff2hdfGrayscaleConvert", self.location])
+	
+	def loadImageFrameToArray(self):
+		img = Image.open(self.location)
+		img.load()
+		self.rawImage = numpy.asarray(img, dtype='uint' + self.bitdepth)
+	
+	def saveImageToBinaryFile(self):
+		self.rawImage.astype(self.bitdepth).tofile(destination)
 
 
 if __name__ == '__main__':
