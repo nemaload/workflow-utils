@@ -151,6 +151,9 @@ class imageConversion:
 		# EFFECTS: Saves the numpy array to disk with the filename of the iamge
 		numpy.save(self.location, self.rawImage)
 
+	def printMax(self):
+		print numpy.amax(self.rawImage)
+
 class fileObject:
 	def __init__(self, name, width, height):
 	# REQUIRES: Name be a filename CONTAINING PATH of the HDF5 set to be created.
@@ -205,6 +208,7 @@ class fileObject:
 	# REQUIRES: Image must be a numpy dataset
 		if self.currentDataset.shape[0] == imageToSave.width and self.currentDataset.shape[1] == imageToSave.height:
 		#if self.currentDataset.shape == tuple(imageToSave.width, imageToSave.height)
+			print "Setting current dataset equal"
 			self.currentDataset = imageToSave.rawImage
 		else:
 			print "Dimension mismatch! Exiting..."
@@ -312,7 +316,11 @@ if __name__ == '__main__':
 		#Get the image's details
 		imageToConvert.getImageDetails()
 		#Create a file object and initialize
-		fileToSave = fileObject(os.path.splitext(imageFile)[0],imageToConvert.width, imageToConvert.height)
+		root, ext = os.path.splitext(fileList[imageFileIndex])
+		name = os.path.basename(root)
+		name = outputPlace + '/' + name 
+		#fileToSave = fileObject(os.path.splitext(imageFile)[0],imageToConvert.width, imageToConvert.height)
+		fileToSave = fileObject(name,imageToConvert.width, imageToConvert.height)
 		fileToSave.createFile()
 		fileToSave.setBitDepth(imageToConvert.bitdepth)
 		if not imageToConvert.grayscaleCheck:
@@ -334,6 +342,7 @@ if __name__ == '__main__':
 			#Create a new dataset
 			ds = fileToSave.createNewDataset(str(frameIndex))
 			#Put the frame in that dataset
+			fileToSave.saveImageToDataset(imageToConvert)
 		#Delete the object(or close it or whatever)
 
 		fileToSave.imageGroup.attrs['originalName'] =  fileToSave.name
