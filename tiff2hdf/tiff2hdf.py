@@ -190,16 +190,20 @@ class fileObject:
 	# MODIFIES: self.file
 	# EFFECTS: Creates an image group called "images" within the HDF5 file.
 		self.imageGroup = self.file.create_group("images")
-	def createNewDataset(self, datasetName):
+	def createNewDataset(self, datasetName, data):
 	# REQUIRES: image group is already created
 	# MODIFIES: self.imageGroup
 	# EFFECTS: Creates a new dataset, and stores it in the self.currentDataset variable
 	# NOTE: This corresponds to a frame in a stack typically
 		dt = 'uint' + str(self.bitdepth)
+		#self.currentDataset = self.imageGroup.create_dataset(
+		#	datasetName,
+		#	(self.width, self.height),
+		#	dt)
 		self.currentDataset = self.imageGroup.create_dataset(
 			datasetName,
-			(self.width, self.height),
-			dt)
+			data=data,
+			dtype=dt)
 	def setAttribute(self, attributeName, stringContent):
 	#Requires: current group must be set
 		self.imageGroup.attrs[attributeName] = stringContent
@@ -340,15 +344,17 @@ if __name__ == '__main__':
 			# Do any alterations(bit casting) to that frame
 				#Generate lookup tables
 			#Create a new dataset
-			ds = fileToSave.createNewDataset(str(frameIndex))
+			ds = fileToSave.createNewDataset(str(frameIndex),imageToConvert.rawImage)
 			#Put the frame in that dataset
-			fileToSave.saveImageToDataset(imageToConvert)
-		#Delete the object(or close it or whatever)
+			#fileToSave.saveImageToDataset(imageToConvert)
+		#r
 
-		fileToSave.imageGroup.attrs['originalName'] =  fileToSave.name
+		fileToSave.imageGroup.attrs['originalName'] =  name
+		print "Saved file with original name: " + name 
 		#get time
-
 		fileToSave.imageGroup.attrs['createdAt'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+		print "Converted at " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
+		print "Converted " + imageToConvert.numImages
 
 
