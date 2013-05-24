@@ -127,7 +127,13 @@ class imageConversion:
 		#to get
 
 		#this doesn't work for some reason self.rawImage = numpy.array(self.img)
-		self.rawImage = plt.imread(self.location)
+		#self.rawImage = plt.imread(self.location)
+		#code from http://andrew-hills.blogspot.com/2013/03/importing-16-bit-tiffs-into-numpy.html
+		#self.rawImage = numpy.fromstring(
+		#	self.img.tostring(),
+		#	numpy.uint16
+		#	).reshape(tuple(list(self.img.size)))
+		self.rawImage = numpy.array(self.img.getdata()).reshape(self.img.size)
 		print "Converted to array. Dimensions: " + str(self.rawImage.shape)
 		#print "Array width: " + str(self.rawImage.shape[0])
 		#print "Array height: " + str(self.rawImage.shape[1])
@@ -273,6 +279,7 @@ if __name__ == '__main__':
 		#second, check that output file does NOT exist, and outputPlace is not a directory.
 		if os.path.isfile(outputPlace) and not args.overwrite:
 			sys.exit("Output file exists. To overwrite, use the -o flag.")
+		fileList = [inputPlace]
 	if not args.single:
 		if not (os.path.isdir(inputPlace) and os.path.isdir(outputPlace)):
 			sys.exit("Both input and output directories must exist.")
@@ -312,11 +319,11 @@ if __name__ == '__main__':
 
 	#testing block
 	#For each image
-	for imageFile in fileList:
+	for imageFileIndex in range(len(fileList)):
 		#Create an image conversion object
 		imageToConvert = imageConversion()
 		#Set the image's location to the proper place
-		imageToConvert.setImageLocation(imageFile)
+		imageToConvert.setImageLocation(fileList[imageFileIndex])
 		#Get the image's details
 		imageToConvert.getImageDetails()
 		#Create a file object and initialize
@@ -325,6 +332,7 @@ if __name__ == '__main__':
 		name = outputPlace + '/' + name 
 		#fileToSave = fileObject(os.path.splitext(imageFile)[0],imageToConvert.width, imageToConvert.height)
 		fileToSave = fileObject(name,imageToConvert.width, imageToConvert.height)
+		print "Trying to open " + fileToSave.filename
 		fileToSave.createFile()
 		fileToSave.setBitDepth(imageToConvert.bitdepth)
 		if not imageToConvert.grayscaleCheck:
@@ -344,6 +352,7 @@ if __name__ == '__main__':
 			# Do any alterations(bit casting) to that frame
 				#Generate lookup tables
 			#Create a new dataset
+			print "The shape of this frame is " + str(imageToConvert.rawImage.shape)
 			ds = fileToSave.createNewDataset(str(frameIndex),imageToConvert.rawImage)
 			#Put the frame in that dataset
 			#fileToSave.saveImageToDataset(imageToConvert)
@@ -355,6 +364,6 @@ if __name__ == '__main__':
 		fileToSave.imageGroup.attrs['createdAt'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		print "Converted at " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
-		print "Converted " + imageToConvert.numImages
+		print "Converted " + str(imageToConvert.numImages)
 
 
