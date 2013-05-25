@@ -20,18 +20,15 @@
 # NEMALOAD
 # nemaload.com
 
-#To install PIL,
-#http://athenageek.wordpress.com/2009/06/09/easy_install-pil-not-so-easy/
+#TODO: 
+# 1. Fix overwrite out of index bug due to deletion
+# 2. Fix crashing on reading buggy .tif files
 
-#Note: PIL has a bug when it comes to 16 bit images. I found a workaround here: http://stackoverflow.com/questions/7684695/numpy-array-of-an-i16-image-file
-# This is why you might see some strange code.
-import sys, argparse, os, ctypes, numpy, h5py, glob
+import sys, argparse, os, numpy, h5py, glob, Image
 from time import gmtime, strftime
 
 from wand.image import Image as wandImage
 
-import Image
-#apparently ^that module has a bug with uncompressed 16 bit tiffs... might as well throw in another dependency
 class imageConversion:
 	def __init__(self):
 	#MODIFIES: self
@@ -124,17 +121,7 @@ class imageConversion:
 		# EFFECTS: Pulls the current frame, then SEEKS to the next one using try
 		#to get
 
-		#this doesn't work for some reason self.rawImage = numpy.array(self.img)
-		#self.rawImage = plt.imread(self.location)
-		#code from http://andrew-hills.blogspot.com/2013/03/importing-16-bit-tiffs-into-numpy.html
-		#self.rawImage = numpy.fromstring(
-		#	self.img.tostring(),
-		#	numpy.uint16
-		#	).reshape(tuple(list(self.img.size)))
 		self.rawImage = numpy.array(self.img.getdata(), dtype=numpy.dtype('uint16')).reshape(self.img.size[::-1])
-		print "Converted to array. Dimensions: " + str(self.rawImage.shape)
-		#print "Array width: " + str(self.rawImage.shape[0])
-		#print "Array height: " + str(self.rawImage.shape[1])
 		#this is the work around to the shitty PIL library
 
 		try:
@@ -144,10 +131,6 @@ class imageConversion:
 		except EOFError:
 			print "Reached end of stacked image..."
 
-
-		#now the image is a numpy array which can be manipulated
-		#http://stackoverflow.com/questions/384759/pil-and-numpy
-		#.seek() will change frames
 
 	def saveAsRawNumpyArray(self):
 		# REQUIRES: rawImage must be set
@@ -200,10 +183,6 @@ class fileObject:
 	# EFFECTS: Creates a new dataset, and stores it in the self.currentDataset variable
 	# NOTE: This corresponds to a frame in a stack typically
 		dt = 'uint' + str(self.bitdepth)
-		#self.currentDataset = self.imageGroup.create_dataset(
-		#	datasetName,
-		#	(self.width, self.height),
-		#	dt)
 		self.currentDataset = self.imageGroup.create_dataset(
 			datasetName,
 			data=data,
@@ -253,11 +232,7 @@ if __name__ == '__main__':
 		'--raw',
 		help='Convert TIFFs to raw images, not HDF5 datasets.',
 		action="store_true")
-	#parser.add_argument('-c',
-	#	'--opencl',
-	#	help="""Accelerate RGB to grayscale conversion with
-	#	OpenCL(requires OpenCL dependencies)""",
-	#	action="store_true")
+
 	parser.add_argument('-b',
 		'--bitdepth',
 		help="""WARNING THIS IS NOT FUNCTIONAL: Convert all TIFF files to HDF5 datasets with N bit integers,
@@ -294,6 +269,7 @@ if __name__ == '__main__':
 	#Then, if it does, grab a list of files from the input.
 		#If directory contains no TIFF files, break
 		for imageFileIndex in range(len(fileList)):
+
 			root, ext = os.path.splitext(fileList[imageFileIndex])
 			name = os.path.basename(root)
 			if not args.overwrite and os.path.isfile(outputPlace + '/' + name + '.hdf5'):
