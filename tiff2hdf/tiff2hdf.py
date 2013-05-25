@@ -133,7 +133,7 @@ class imageConversion:
 		#	self.img.tostring(),
 		#	numpy.uint16
 		#	).reshape(tuple(list(self.img.size)))
-		self.rawImage = numpy.array(self.img.getdata()).reshape(self.img.size)
+		self.rawImage = numpy.array(self.img.getdata()).reshape(self.img.size[::-1])
 		print "Converted to array. Dimensions: " + str(self.rawImage.shape)
 		#print "Array width: " + str(self.rawImage.shape[0])
 		#print "Array height: " + str(self.rawImage.shape[1])
@@ -356,7 +356,6 @@ if __name__ == '__main__':
 			ds = fileToSave.createNewDataset(str(frameIndex),imageToConvert.rawImage)
 			#Put the frame in that dataset
 			#fileToSave.saveImageToDataset(imageToConvert)
-		#r
 
 		fileToSave.imageGroup.attrs['originalName'] =  name
 		print "Saved file with original name: " + name 
