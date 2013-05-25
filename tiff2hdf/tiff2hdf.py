@@ -29,11 +29,9 @@ import sys, argparse, os, ctypes, numpy, h5py, glob
 from time import gmtime, strftime
 
 from wand.image import Image as wandImage
-#from scipy import misc
-import scipy
+
 import Image
 #apparently ^that module has a bug with uncompressed 16 bit tiffs... might as well throw in another dependency
-import matplotlib.pyplot as plt
 class imageConversion:
 	def __init__(self):
 	#MODIFIES: self
@@ -133,7 +131,7 @@ class imageConversion:
 		#	self.img.tostring(),
 		#	numpy.uint16
 		#	).reshape(tuple(list(self.img.size)))
-		self.rawImage = numpy.array(self.img.getdata()).reshape(self.img.size[::-1])
+		self.rawImage = numpy.array(self.img.getdata(), dtype=numpy.dtype('uint16')).reshape(self.img.size[::-1])
 		print "Converted to array. Dimensions: " + str(self.rawImage.shape)
 		#print "Array width: " + str(self.rawImage.shape[0])
 		#print "Array height: " + str(self.rawImage.shape[1])
@@ -357,8 +355,8 @@ if __name__ == '__main__':
 			#Put the frame in that dataset
 			#fileToSave.saveImageToDataset(imageToConvert)
 
-		fileToSave.imageGroup.attrs['originalName'] =  name
-		print "Saved file with original name: " + name 
+		fileToSave.imageGroup.attrs['originalName'] =  os.path.basename(name)
+		print "Saved file with original name: " + os.path.basename(name) 
 		#get time
 		fileToSave.imageGroup.attrs['createdAt'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 		print "Converted at " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
