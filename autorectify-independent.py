@@ -943,12 +943,12 @@ if __name__ == '__main__':
 # //This is usually used when manually inputing optical parameters
 # //before autorectification.
 # func (o *OpticsRecipe) setOpticsRecipe(pitch float32, flen float32, mag float32, abbe bool, na float32, medium float32) {
-#     o.pitch = pitch   //pitch
-#     o.flen = flen     // focal length
-#     o.mag = mag       // magnification
-#     o.abbe = abbe     //Abbe number(dispersion)/abberation? was bool in LFDisplay source
-#     o.na = na         //numerical aperture
-#     o.medium = medium //optical medium(intrinsic impedance?)
+#     o.pitch = pitch   //pitch, default 150
+#     o.flen = flen     // focal length, default 3000
+#     o.mag = mag       // magnification, default 60
+#     o.abbe = abbe     //Abbe number(dispersion)/abberation? was bool in LFDisplay source, default false
+#     o.na = na         //numerical aperture, default 1.4
+#     o.medium = medium //optical medium(intrinsic impedance?), default 1.515
 # }
 
 # //calculateMaxNormalizedSlope takes an initialized optics recipe
@@ -972,16 +972,19 @@ if __name__ == '__main__':
     for currentFrameIndex in framesToProcess:
         currentFrame = imageGroup[str(currentFrameIndex)].value
         currentFrame.shape = (currentFrame.shape[0], currentFrame.shape[1], 1)
+        currentFrame = numpy.swapaxes(currentFrame,0,1)
         returnTuple = autorectify(currentFrame,maxu,verboseMode)
         print returnTuple
-        for x in range(0,2):
+        for x in range(0,3):
             for y in range(0,2):
-                rectification[x][y] += returnTuple[x][y]
+                rectification[x][y] += float(returnTuple[x][y])
     #divide by number of frames processed
-    for x in range(0,2):
+    for x in range(0,3):
         for y in range(0,2):
-            rectification[x][y] /= numberOfImagesToProcess
+            rectification[x][y] /= float(numberOfImagesToProcess)
     #print out here
     print rectification
+    #(1710.000000,1148.000000,20.000000,0.000000,0.000000,20.000000)
+    # (x-offset,y-offset,right-dx,right-dy,down-dx,down-dy)
 
 
