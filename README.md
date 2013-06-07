@@ -3,87 +3,82 @@ This repository stores a number of tools to help facilitate *NEMALOAD*'s workflo
 
 ## tiff2hdf
 
-This tool takes images or image stacks in the **TIFF** format (normally 16-bit grayscale) and converts them into **HDF5** datasets. It supports a number of features, such as:
-* Tolerance for multiple bit depths and color modes
-
-* **GPU**-accelerated **RGB** to grayscale conversion
-
-* Customizable **HDF** bit depth and data representation
+This tool takes 16-bit grayscale images or image stacks in the **TIFF** format and converts them into **HDF5** datasets with associated metadata. It supports a number of features, such as:
 
 * Single image or batch processing modes
+
+* Automatic optic metadata writing
 
 * Image conversion safety checks
 
 ### Technical Implementation
-This tool is written in **C** and **Python**, and leverages the ImageMagick library, written in **C**. It also utilizes the **OpenCL** libraries to accelerate **RGB** to grayscale conversion.
+This tool is written in Python, and leverages the ImageMagick library, written in **C**. 
 
 ### Dependencies
 * **ImageMagick**
 * **Python** 2.6+
 * **Wand**(ctypes-based **Python ImageMagick** binding)
 * **H5py Python** library
-* **OpenCL** libraries(if **OpenCL** flag is used)
 
 ### User Guide
-#### Name
-*tiff2hdf* - Converts tiff files to HDF5 datasets.
-#### Synopsis
-`tiff2hdf.py [-h] [-s] [-a] [-o] [-r] [-c] [-b BITDEPTH] input output` 
+```
+usage: tiff2hdf.py [-h] [-s] [-o] [-p PARAMETERS] [-l] input output
 
-#### Options
-**-a**  
+A tool to convert TIFF files to HDF5 datasets.
 
-Convert all TIFFs in current directory to HDF5 datasets, output in current directory.
+positional arguments:
+  input                 The input directory to be converted. This can also be
+                        a filename in the case that the -s flag is set.
+  output                The directory to which the file should be output. This
+                        can also be a filename in the case that the -s flag is
+                        set.
 
-**-o**  
+optional arguments:
+  -h, --help            show this help message and exit
+  -s, --single          Converts a single image.
+  -o, --overwrite       Overwrite all existing HDF5 files in directory.
+  -p PARAMETERS, --parameters PARAMETERS
+                        Specify the location of an LFDisplay-formatted optical
+                        parameter text file
+  -l, --lightsheet      Specifies the input images are light-sheet images
 
-Overwrite all existing HDF5 files in directory.
+```
 
-**-r**  
-
-Convert TIFFs to raw images, not HDF5 datasets.
-
-**-c**  
-
-Accelerate RGB to grayscale conversionsion with OpenCL(requires OpenCL dependencies)
-
-**-b N**  
-
-Convert all TIFFsFF files to HDF5 datasets with _N_ bit integers, where _N_ is a valid number of bits (see HDF5 documentation.) The default bit depth is 16 bits.
-
-**--help**   
-
-Shows documentation.
-
-## autorectify-accelerated
-This tool is an **OpenCL C** port of *pasky*'s autorectify code originally for *LFDisplay*. It processes **HDF5** images and **TIFF** stacks, and outputs rectification data. Some features of this program include:
-
-* **OpenCL** acceleration of autorectification
-
-* **HDF5** metadata support
-
-* Support for **HDF5** videos.
+## autorectify-independent
+This tool analyzes microlens array images and computes parameters describing the size, spacing, and location of lenses. It takes an HDF5 file as input, and then outputs another HDF5 file with autorectification metadata.
 
 ### Technical Implementation
-autorectify-accelerated is written in **OpenCL C**, and is optmized for the **GPU** architecture. 
+autorectify-independent is written in Python. It was originally written to be a component of LFDisplay, but has been modified to function as a command line tool.
 ### Dependencies
-* **HDF5** header files
-* **OpenCL** libraries
+* **numpy** library
+* **OpenCV** Python bindings
+* **Matplotlib** 
+* **h5py** library
+
 
 ### User Guide
+```
+usage: autorectify-independent.py [-h] [-v] [-p PERCENT] [-o OUTPUT] input
 
-#### Name
-*autorectify-accelerated* - generates lenslet rectification data.  
+A command-line tool to calculate lenslet rectifications
 
-#### Synopsis
-`autorectify-accelerated \[OPTIONS\] \[INPUT FILE(S)…\] \[OUTPUT FILE(S)…\]`  
+positional arguments:
+  input                 The input file(HDF5).
 
-`autorectify-accelerated \[LONG-OPTION\]`
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Verbose mode
+  -p PERCENT, --percent PERCENT
+                        The percentage of images to be processed for a sample
+                        in a multi image dataset
+  -o OUTPUT, --output OUTPUT
+                        The filename or path of the output file(must have HDF5
+                        extension, not exist)
 
-#### Options
-**-t**  
+```
+## autorectify-accelerated
 
-Output autorectification data to text files instead of **HDF5** metadata.
+This tool is under development, and is a concurrent Go port of autorectify. It is not functional at the moment, as priority has shifted to other tasks.
 
 
 

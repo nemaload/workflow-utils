@@ -1,34 +1,29 @@
-"""
-Auto-rectify optimization algorithm.
-"""
+#!/usr/bin/env python
 
-"""
-Parameter space:
-        offset-x
-        offset-y
-        right-dx
-        right-dy
-        down-dx
-        down-dy
+# autorectify-independent analyzes microlens array images and computes parameters
+# describing the size, spacing, and location of lenses.
+# Copyright (C) 2013 NEMALOAD
 
-Smart X,Y sampling:
+# Original autorectify code by Petr Baudis
+# Independence modifications by Michael Schmatz
 
-(TODO)
-Prefer sampling in bright areas.  Compute value histograms per row and column,
-use them as empiric probability distributions for X,Y choice (snapping to
-nearest grid item), search starting from the center.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
-Value function:
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-Sum of @K samples. Each sample is computed as (i) log(#inside) - log(#outside)
-or (ii) exp(log(#inside) - log(#outside)) i.e. #inside/#outside.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Optimization:
+# Contact Information:
+# NEMALOAD
+# nemaload.com
 
-Approach 1: particle swarm optimization (TODO)
-
-Approach 2: differential evolution (TODO)
-"""
 
 import math
 import numpy
@@ -40,28 +35,37 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.patches
 
+#various file processing/OS things
+import h5py
+import os
+import sys
+import argparse
+import random
 
 MAX_RADIUS = 30
 
 
-def autorectify(frame, maxu):
+def autorectify(frame, maxu, verbose):
     """
     Automatically detect lenslets in the given frame with the
     given optics parameters (maxu==maxNormalizedSlope) and return
     a tuple of (lensletOffset, lensletHoriz, lensletVert).
+    Frame is a numpy array(this is different from the original autorectify)
     """
     # solution = autorectify_de(frame, maxu)
     start_t = time.asctime()
-    solution = autorectify_cv(frame, maxu)
-    print "start", start_t, "end", time.asctime()
+    solution = autorectify_cv(frame, maxu, verbose)
+    if verbose:
+        print "start", start_t, "end", time.asctime()
     return solution.to_steps()
 
 
-def autorectify_cv(frame, maxu):
+def autorectify_cv(frame, maxu, verbose):
     """
     Autorectification based on computer vision analysis.
     """
-    image = frame.to_numpy_array()
+    #image = frame.to_numpy_array()
+    image = frame
 
     tiling = ImageTiling(image, MAX_RADIUS * 5)
     tiling.scan_brightness()
@@ -73,12 +77,13 @@ def autorectify_cv(frame, maxu):
     for i in range(n_samples):
       while True:
        try:
-        (tiles[i], rps[i]) = sample_rp_from_tiling(frame, tiling, maxu)
+        (tiles[i], rps[i]) = sample_rp_from_tiling(frame, tiling, maxu, verbose)
 
        except IndexError:
         # IndexError can be thrown in case one of the areas reaches
         # to one edge of the tile; try with another tile
-        print ">>> bad region, retrying"
+        if verbose:
+            print ">>> bad region, retrying"
         continue
 
        else:
@@ -97,36 +102,39 @@ def autorectify_cv(frame, maxu):
     #    ax.add_patch(rect)
     #plt.show()
 
-    rp = RectifyParams.median(rps)
+    rp = RectifyParams.median(rps, verbose)
 
     # Fine-tune central lens position
     lens0 = rp.lens0()
     try:
-        lens0 = finetune_lens_position(image, maxu, rp, lens0)
+        lens0 = finetune_lens_position(image, maxu, rp, lens0,verbose)
     except IndexError:
         # This went horrendously wrong. Just retry the whole operation.
-        print "!!! Index error when finetuning lens0; retrying autorectification"
-        return autorectify_cv(frame, maxu)
+        if verbose:
+            print "!!! Index error when finetuning lens0; retrying autorectification"
+        return autorectify_cv(frame, maxu, verbose)
     rp.lens0(lens0)
 
     # Incrementally look at and fine-tune more lens in four directions
     delta = 2
     dirs = numpy.array([[1,0], [-1,0], [0,1], [0,-1]])
     while dirs.shape[0] > 0:
-        print "retuning delta", delta, "rp", rp
+        if verbose:
+            print "retuning delta", delta, "rp", rp
         i = 0
         while i < dirs.shape[0]:
             try:
-                rp = refine_rp_by_lens_finetune(image, maxu, rp, delta * dirs[i])
+                rp = refine_rp_by_lens_finetune(image, maxu, rp, delta * dirs[i],verbose)
             except IndexError:
                 # Out of bounds in this direction, give up
                 dirs = numpy.delete(dirs, i, 0)
-                print "out of bounds, remaining directions", dirs
+                if verbose:
+                    print "out of bounds, remaining directions", dirs
             else:
                 i += 1
         delta *= 2
-
-    print "final rp", rp
+    if verbose:  
+        print "final rp", rp
     return rp
 
 
@@ -138,12 +146,13 @@ def swapxy(a):
     """
     return numpy.array([a[1], a[0]])
 
-def sample_rp_from_tiling(frame, tiling, maxu):
+def sample_rp_from_tiling(frame, tiling, maxu,verbose):
     t = tiling.random_tile()
     s = tiling.tile_step
     perturb = [numpy.random.randint(-s/4, s/4), numpy.random.randint(-s/4, s/4)]
     (ul, br) = tiling.tile_to_imgxy(t, perturb)
-    print tiling.image.shape, "t", t, "p", perturb, "ul", ul, "br", br
+    if verbose:
+        print tiling.image.shape, "t", t, "p", perturb, "ul", ul, "br", br
     # image pixels in the chosen tile
     timage = TileImage(tiling, tiling.image[ul[0]:br[0], ul[1]:br[1]].reshape(s, s).copy())
     timage.to256()
@@ -205,19 +214,21 @@ def sample_rp_from_tiling(frame, tiling, maxu):
 
     # Convert lens matrix to RectifyParams
     lens0 = lensmatrix[0,0] + ul
-    rp = RectifyParams([frame.width, frame.height])
+    rp = RectifyParams([frame.shape[1], frame.shape[0]])
     lensletOffset = tuple(swapxy(lens0))
     lensletHoriz = tuple(swapxy(numpy.average([lensmatrix[0,1] - lensmatrix[0,0],
                                                lensmatrix[1,1] - lensmatrix[1,0]], 0)))
     lensletVert = tuple(swapxy(numpy.average([lensmatrix[1,0] - lensmatrix[0,0],
                                               lensmatrix[1,1] - lensmatrix[0,1]], 0)))
-    print "o", lensletOffset, "h", lensletHoriz, "v", lensletVert
-    rp.from_steps((lensletOffset, lensletHoriz, lensletVert))
-    print "###", rp
+    if verbose:
+        print "o", lensletOffset, "h", lensletHoriz, "v", lensletVert
+    rp.from_steps((lensletOffset, lensletHoriz, lensletVert), verbose)
+    if verbose:
+        print "###", rp
 
     return ((ul, br), rp)
 
-def finetune_lens_position(image, maxu, rp, lens0):
+def finetune_lens_position(image, maxu, rp, lens0,verbose):
     matrixsize = 2
     matrixshape = numpy.array([matrixsize*2+1, matrixsize*2+1])
     matrixcenter = numpy.array([matrixsize, matrixsize])
@@ -241,7 +252,8 @@ def finetune_lens_position(image, maxu, rp, lens0):
         shiftmatrix = shiftmatrix2
 
         gradient = numpy.array(numpy.unravel_index(shiftmatrix.argmax(), tuple(matrixshape))) - matrixcenter
-        print "lens0", lens0, "shiftmatrix", shiftmatrix, "gradient", gradient
+        if verbose:
+            print "lens0", lens0, "shiftmatrix", shiftmatrix, "gradient", gradient
 
         if gradient[0] == 0 and gradient[1] == 0:
             break
@@ -252,19 +264,23 @@ def finetune_lens_position(image, maxu, rp, lens0):
 
     return lens0
 
-def refine_rp_by_lens_finetune(image, maxu, rp, delta):
-    print "refine", delta
+def refine_rp_by_lens_finetune(image, maxu, rp, delta, verbose):
+    if verbose:
+        print "refine", delta
     (lensletOffset, lensletHoriz, lensletVert) = rp.to_steps()
     lens_before = rp.xylens(delta)
-    lens_after = finetune_lens_position(image, maxu, rp, lens_before.copy())
-    print "  before", lens_before, "after", lens_after
+    lens_after = finetune_lens_position(image, maxu, rp, lens_before.copy(),verbose)
+    if verbose:
+        print "  before", lens_before, "after", lens_after
     if delta[0] != 0:
-        print "  horiz", (lens_after - lens_before)
+        if verbose:
+            print "  horiz", (lens_after - lens_before)
         lensletHoriz += (lens_after - lens_before) / delta[0]
     if delta[1] != 0:
-        print "  vert", (lens_after - lens_before)
+        if verbose:
+            print "  vert", (lens_after - lens_before)
         lensletVert += (lens_after - lens_before) / delta[1]
-    rp.from_steps((lensletOffset, lensletHoriz, lensletVert))
+    rp.from_steps((lensletOffset, lensletHoriz, lensletVert), verbose)
     return rp
 
 
@@ -364,14 +380,15 @@ class TileImage:
         return numpy.array([[-1,-1], [-1,1], [1,1], [1,-1]])
 
 
-def autorectify_de(frame, maxu):
+def autorectify_de(frame, maxu, verbose):
     """
     Autorectification based on differential evolution.
     """
-    print "init"
+    if verbose:
+        print "init"
     # Work on a list of solutions, initially random
     solutions_n = 20
-    solutions = [RectifyParams([frame.width, frame.height]).randomize()
+    solutions = [RectifyParams([frame.shape[1], frame.shape[0]]).randomize()
                      for i in range(solutions_n)]
     # 2160x2560 -> 1080x1280
     # (1284.367000,1190.300000,23.299000,-0.032000,-0.035000,23.262000)
@@ -381,13 +398,15 @@ def autorectify_de(frame, maxu):
     solutions[0].tau = 0.0137397938
     solutions[0].offset[0] = -8.907
     solutions[0].offset[1] = -6.303
-    print solutions[0].to_steps()
+    if verbose:
+        print solutions[0].to_steps()
 
-    image = frame.to_numpy_array()
+    #image = frame.to_numpy_array()
+    image = frame
     tiling = ImageTiling(image, MAX_RADIUS * 5)
     tiling.scan_brightness()
-
-    print "best..."
+    if verbose:
+        print "best..."
     # Initialize the best solution info by something random
     sbest = solutions[0]
     value_best = measure_rectification(image, tiling, maxu, sbest)
@@ -395,16 +414,19 @@ def autorectify_de(frame, maxu):
     # Improve the solutions
     episodes_n = 50
     for e in range(episodes_n):
-        print "EPISODE ", e
+        if verbose:
+            print "EPISODE ", e
         # We iterate through the solutions in a random order; this
         # allows us to reuse the same array to obtain recombination
         # solutions randomly and safely.
         permutation = numpy.random.permutation(solutions_n)
         for si in permutation:
-            print " solution ", si
+            if verbose:
+                print " solution ", si
             s = solutions[si]
             value_old = measure_rectification(image, tiling, maxu, s)
-            print "  value ", value_old
+            if verbose:
+                print "  value ", value_old
 
             # Cross-over with recombination solutions
             sa = s.to_array()
@@ -424,17 +446,21 @@ def autorectify_de(frame, maxu):
             s2 = s
             s2.from_array(sa).normalize()
             value_new = measure_rectification(image, tiling, maxu, s2)
-            print "  new value ", value_new
+            if verbose:
+                print "  new value ", value_new
             if value_new > value_old:
-                print "   ...better than before"
+                if verbose:
+                    print "   ...better than before"
                 solutions[si] = s2
                 if value_new > value_best:
-                    print "   ...and best so far!"
+                    if verbose:
+                        print "   ...and best so far!"
                     sbest = s2
                     value_best = value_new
 
     # Return the best solution encountered
-    print "best is ", sbest, " with value ", value_best
+    if verbose:
+        print "best is ", sbest, " with value ", value_best
     return sbest
 
 
@@ -618,7 +644,7 @@ class RectifyParams:
         lensletVert = self.xytilted([0, self.size[1]])
         return (lensletOffset.tolist(), lensletHoriz.tolist(), lensletVert.tolist())
 
-    def from_steps(self, steps):
+    def from_steps(self, steps, verbose):
         """
         Load parameters from a tuple of
         (lensletOffset, lensletHoriz, lensletVert).
@@ -629,12 +655,14 @@ class RectifyParams:
         tauH = math.atan2(lensletHoriz[1], lensletHoriz[0])
         tauV = math.atan2(-lensletVert[0], lensletVert[1])
         self.tau = numpy.average([tauH, tauV]) # typically, tauH == tauV
-        print "from_steps tau ", tauH, tauV, self.tau
+        if verbose:
+            print "from_steps tau ", tauH, tauV, self.tau
 
         size0 = lensletHoriz[0] / math.cos(tauH)
         size1 = lensletVert[1] / math.cos(tauV)
         self.size = numpy.array([size0, size1])
-        print "from_steps size ", self.size
+        if verbose:
+            print "from_steps size ", self.size
 
         # normalize() seems to do things with .offset that are not proper
         #self.tau = self.tau % (math.pi/8)
@@ -679,7 +707,7 @@ class RectifyParams:
         return "[size " + str(self.size) + " offset " + str(self.offset) + " tau " + str(self.tau * 180 / math.pi) + "deg]"
 
     @staticmethod
-    def median(array):
+    def median(array, verbose):
         """
         From an array of RectifyParams[] objects, construct median parameters.
         An exception is offset; we prefer an offset nearest the center of
@@ -698,7 +726,8 @@ class RectifyParams:
         rpmedian.size = numpy.array([size0[len(size0)/2], size1[len(size1)/2]])
         rpmedian.offset = offset[0]
         rpmedian.tau = tau[len(tau)/2]
-        print "median:", rpmedian
+        if verbose:
+            print "median:", rpmedian
         return rpmedian
 
 
@@ -784,7 +813,7 @@ class ImageTiling:
             stab -= prob
         # We reach here only in case of float arithmetic imprecisions;
         # just pick a uniformly random tile
-        print "ImageTiling.random_tile(): fallback to random (warning)"
+        #print "ImageTiling.random_tile(): fallback to random (warning)"
         return numpy.array([numpy.random.randint(self.height_t), numpy.random.randint(self.width_t)])
 
     def tile_to_imgxy(self, tile, perturb=[0,0]):
@@ -848,3 +877,124 @@ class ImageTiling:
                     return color_bounds[i-1]
             sum_fract = sum_fract_2
         return 0.5 # unf, what else to do?
+
+#This is the command line stuff
+#Output format:
+#(1710.000000,1148.000000,20.000000,0.000000,0.000000,20.000000)
+# (x-offset,y-offset,right-dx,right-dy,down-dx,down-dy)
+#when HDF5 is standardized, import optical parameters from HDF5 file.
+if __name__ == '__main__':
+    #usage related code
+    parser = argparse.ArgumentParser(
+        prog='autorectify-independent.py',
+        description='A command-line tool to calculate lenslet rectifications')
+    parser.add_argument("input", type=str,
+        help="""The input file(HDF5).""")
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        help="""Verbose mode""",
+        action="store_true")
+
+    parser.add_argument('-p',
+        '--percent',
+        help="""The percentage of images to be processed for a sample in a multi image dataset""",
+        nargs=1)
+    parser.add_argument(
+        '-o',
+        '--output',
+        help="The filename or path of the output file(must have HDF5 extension, not exist)",
+        nargs=1)
+
+    args = parser.parse_args()
+
+    inputPlace = args.input
+    #check that input file exists, and is a valid HDF5 file
+    if not os.path.isfile(inputPlace):
+        sys.exit("Input file does not exist.")
+    root, ext = os.path.splitext(inputPlace)
+    if ext != ".hdf5":
+        sys.exit("Invalid file extension(must be '.hdf5'")
+    #now open the file
+    try:
+        f = h5py.File(inputPlace,'r')
+    except:
+        sys.exit("There was an error opening the file. Perhaps it is corrupted. Exiting...")
+    #now getting number of datasets in file
+    try:
+        imageGroup = f.require_group("images")
+    except TypeError:
+        sys.exit("No 'images' group found, which must exist for the file to be processed correctly. Exiting...")
+    numberImages = len(imageGroup)
+    numberOfImagesToProcess = 1
+    if args.percent != None:
+        if args.percent > 0 and args.percent < 100:
+            numberOfImagesToProcess = math.ceil((float(args.percent)/100)*float(numberOfImagesToProcess))
+        else:
+            sys.exit("Invalid percentage given. Exiting...")
+    framesToProcess = random.sample(range(numberImages),numberOfImagesToProcess)
+    #get maxu
+    maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
+    if 'op_flen' in imageGroup.attrs:
+        imagena = float(imageGroup.attrs['op_na']) / float(imageGroup.attrs['op_na'])
+        if imagena < 1.0:
+            ulenslope = 1.0 * float(imageGroup.attrs['op_pitch']) / float(imageGroup.attrs['op_flen'])
+            naslope = imagena / (1.0-imagena*imagena)**0.5
+            maxu = float(naslope / ulenslope)
+        else:
+            maxu = 0.0
+
+    if args.verbose:
+        verboseMode = True
+    else:
+        verboseMode = False
+    rectification = ([0,0],[0,0],[0,0])
+    for currentFrameIndex in framesToProcess:
+        currentFrame = imageGroup[str(currentFrameIndex)].value
+        currentFrame.shape = (currentFrame.shape[0], currentFrame.shape[1], 1)
+        currentFrame = numpy.swapaxes(currentFrame,0,1)
+        returnTuple = autorectify(currentFrame,maxu,verboseMode)
+        print returnTuple
+        for x in range(0,3):
+            for y in range(0,2):
+                rectification[x][y] += float(returnTuple[x][y])
+    #divide by number of frames processed
+    for x in range(0,3):
+        for y in range(0,2):
+            rectification[x][y] /= float(numberOfImagesToProcess)
+    #print out here
+    x_offset = rectification[0][0]
+    y_offset = rectification[0][1]
+    right_dx = rectification[1][0]
+    right_dy = rectification[1][1]
+    down_dx = rectification[2][0]
+    down_dy = rectification[2][1]
+    #spit out HDF5 file here
+    if args.output:
+        if os.path.isfile(args.output) or os.path.isfile(args.output):
+            sys.exit("Output file or path already exists. Exiting...")
+        outroot, outext = os.path.splitext(inputPlace)
+        if outext != ".hdf5":
+            sys.exit("Invalid output file extension(must be '.hdf5'")
+        outputFile = h5py.File(args.output,'w-')
+        print "Output file is located at " + args.output
+    else:
+        outputFile = h5py.File(root + '-autorectify.hdf5', 'w-')
+        print "Output file is located at " + root + "-autorectify.hdf5"
+    autorectificationGroup = outputFile.require_group("autorectification")
+    autorectificationGroup.attrs['x_offset'] = x_offset
+    autorectificationGroup.attrs['y_offset'] = y_offset
+    autorectificationGroup.attrs['right_dx'] = right_dx
+    autorectificationGroup.attrs['right_dy'] = right_dy
+    autorectificationGroup.attrs['down_dx'] = down_dx
+    autorectificationGroup.attrs['down_dy'] = down_dy
+
+    outputFile.close()
+
+
+
+
+
+
+
+

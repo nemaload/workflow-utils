@@ -3,6 +3,8 @@
 # tiff2hdf converts TIFF images and image stacks to HDF5 datasets.
 # Copyright (C) 2013 NEMALOAD
 
+# Authored by Michael Schmatz
+
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -25,9 +27,24 @@
 # 2. Fix crashing on reading buggy .tif files
 
 import sys, argparse, os, numpy, h5py, glob, Image
-from time import gmtime, strftime
+import datetime
+import time
 
 from wand.image import Image as wandImage
+
+#for ISO 8601 timezone calculation without external libraries
+class LocalTZ(datetime.tzinfo):
+    _unixEpochOrdinal = datetime.datetime.utcfromtimestamp(0).toordinal()
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+    def utcoffset(self, dt):
+        t = (dt.toordinal() - self._unixEpochOrdinal)*86400 + dt.hour*3600 + dt.minute*60 + dt.second + time.timezone
+        utc = datetime.datetime(*time.gmtime(t)[:6])
+        local = datetime.datetime(*time.localtime(t)[:6])
+        return local - utc
+
 
 class imageConversion:
 	def __init__(self):
@@ -165,8 +182,6 @@ class fileObject:
 			return true
 		else:
 			return false
-	def setBitDepth(self, bits):
-		self.bitdepth = bits
 
 	def createFile(self):
 	# REQUIRES: self.filename is set
@@ -204,8 +219,9 @@ class fileObject:
 
 if __name__ == '__main__':
 	#usage related code
+
 	parser = argparse.ArgumentParser(
-		prog='hdf5convert.py',
+		prog='tiff2hdf.py',
 		description='A tool to convert TIFF files to HDF5 datasets.')
 	parser.add_argument("input", type=str,
 		help="""The input directory to be converted. This can also
@@ -218,32 +234,54 @@ if __name__ == '__main__':
 		'--single',
 		help="""Converts a single image.""",
 		action="store_true")
-	parser.add_argument(
-		'-a',
-		'--all',
-		help="""Convert all TIFFs in current directory to HDF5 datasets,
-		output in current directory.""",
-		action="store_true")
 	parser.add_argument('-o',
 		'--overwrite',
 		help="""Overwrite all existing HDF5 files in directory.""",
 		action="store_true")
-	parser.add_argument('-r',
-		'--raw',
-		help='Convert TIFFs to raw images, not HDF5 datasets.',
+	parser.add_argument('-p',
+		'--parameters',
+		help="Specify the location of an LFDisplay-formatted optical parameter text file",
+		nargs=1)
+	parser.add_argument('-l',
+		'--lightsheet',
+		help="Specifies the input images are light-sheet images",
 		action="store_true")
 
-	parser.add_argument('-b',
-		'--bitdepth',
-		help="""WARNING THIS IS NOT FUNCTIONAL: Convert all TIFF files to HDF5 datasets with N bit integers,
-		where N is a valid number of bits (8, 16, 32, or 64 bits)
-		The default bit depth is 16 bits.""",
-		nargs=1)
+
 
 	args = parser.parse_args()
 
 	inputPlace = args.input
 	outputPlace = args.output
+
+	if args.lightsheet:
+		imageType = "LS"
+	else:
+		imageType = "LF"
+
+	if args.parameters:
+		#parses the optical parameters
+		opticalProperties = args.parameters[0]
+
+		parameterFile = open(opticalProperties)
+		for line in parameterFile:
+			if line[0:5] == "pitch":
+				op_pitch = float(line[5:])
+			if line[0:4] == "flen":
+				op_flen = float(line[4:])
+			if line[0:3] == "mag":
+				op_mag = float(line[3:])
+			if line[0:4] == "abbe":
+				continue
+			if line[0:2] == "na":
+				op_na = float(line[2:])
+			if line[0:6] == "medium":
+				op_medium = float(line[6:])
+	elif not args.lightsheet:
+		op_pitch = op_flen = op_mag = op_na = op_medium = 0
+
+
+
 	#checking if -s flag is properly used
 	if args.single:
 		#first, check that input file exists.
@@ -268,14 +306,15 @@ if __name__ == '__main__':
 			sys.exit("There are no files in the input directory")
 	#Then, if it does, grab a list of files from the input.
 		#If directory contains no TIFF files, break
-		for imageFileIndex in range(len(fileList)):
-
+		imageFileIndex = 0
+		while imageFileIndex < len(fileList):
 			root, ext = os.path.splitext(fileList[imageFileIndex])
 			name = os.path.basename(root)
 			if not args.overwrite and os.path.isfile(outputPlace + '/' + name + '.hdf5'):
 				print "File " + name + '.hdf5' + ' already exists. Skipping because -o flag is not set'
 				del fileList[imageFileIndex]
-
+				continue
+			imageFileIndex += 1
 
 
 		#For each file, check if the HDF5 file already exists in output directory.
@@ -283,11 +322,6 @@ if __name__ == '__main__':
 			#If one is, check if -o flag is set. 
 				#If o flag is set, keep it in the file list.
 				#If not, then print out a message, remove it from the file list, and continue.
-
-	#checking for valid bit depth
-	#If bit depth is set, first check if it's valid.
-	if args.bitdepth and (args.bitdepth not in (8,16,32,64)):
-		sys.exit("Invalid number of bits set(must be 8,16,32, or 64")
 
 
 
@@ -301,14 +335,19 @@ if __name__ == '__main__':
 		#Get the image's details
 		imageToConvert.getImageDetails()
 		#Create a file object and initialize
-		root, ext = os.path.splitext(fileList[imageFileIndex])
-		name = os.path.basename(root)
-		name = outputPlace + '/' + name 
+		
+		if not args.single:
+			root, ext = os.path.splitext(fileList[imageFileIndex])
+			name = os.path.basename(root)	
+			name = outputPlace + '/' + name
+		else:
+			root, ext = os.path.splitext(outputPlace)
+			name = root
 		#fileToSave = fileObject(os.path.splitext(imageFile)[0],imageToConvert.width, imageToConvert.height)
 		fileToSave = fileObject(name,imageToConvert.width, imageToConvert.height)
 		print "Trying to open " + fileToSave.filename
 		fileToSave.createFile()
-		fileToSave.setBitDepth(imageToConvert.bitdepth)
+
 		if not imageToConvert.grayscaleCheck:
 			print "ERROR: Image " + imageToConvert.name + " is not grayscale."
 			print "Only grayscale images are supported. Please convert to grayscale and try again."
@@ -331,12 +370,19 @@ if __name__ == '__main__':
 			#Put the frame in that dataset
 			#fileToSave.saveImageToDataset(imageToConvert)
 
-		fileToSave.imageGroup.attrs['originalName'] =  os.path.basename(name)
+		fileToSave.imageGroup.attrs['originalName'] =  os.path.basename(name) + ext
+
 		print "Saved file with original name: " + os.path.basename(name) 
 		#get time
-		fileToSave.imageGroup.attrs['createdAt'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-		print "Converted at " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+		fileToSave.imageGroup.attrs['createdAt'] = str(datetime.datetime.now(LocalTZ()).isoformat('T')) 
 		fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
-		print "Converted " + str(imageToConvert.numImages)
+		fileToSave.imageGroup.attrs['opticalSystem'] = imageType
+		if imageType == "LF":
+			fileToSave.imageGroup.attrs['op_pitch'] = op_pitch 
+			fileToSave.imageGroup.attrs['op_flen'] = op_flen
+			fileToSave.imageGroup.attrs['op_mag'] = op_mag
+			fileToSave.imageGroup.attrs['op_na'] = op_na
+			fileToSave.imageGroup.attrs['op_medium'] = op_medium
+
 
 
