@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>NEMALOAD workflow-utils by nemaload</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>NEMALOAD workflow-utils</h1>
+        <h2>Various utilities to expedite the project workflow</h2>
+        <a href="https://github.com/nemaload/workflow-utils" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="workflow-utilities" class="anchor" href="#workflow-utilities"><span class="octicon octicon-link"></span></a>Workflow Utilities</h1>
+
+<p>This repository stores a number of tools to help facilitate <em>NEMALOAD</em>'s workflow. See below for details of each tool.</p>
+
+<h2>
+<a name="tiff2hdf" class="anchor" href="#tiff2hdf"><span class="octicon octicon-link"></span></a>tiff2hdf</h2>
+
+<p>This tool takes 16-bit grayscale images or image stacks in the <strong>TIFF</strong> format and converts them into <strong>HDF5</strong> datasets with associated metadata. It supports a number of features, such as:</p>
+
+<ul>
+<li><p>Single image or batch processing modes</p></li>
+<li><p>Automatic optic metadata writing</p></li>
+<li><p>Image conversion safety checks</p></li>
+</ul><h3>
+<a name="technical-implementation" class="anchor" href="#technical-implementation"><span class="octicon octicon-link"></span></a>Technical Implementation</h3>
+
+<p>This tool is written in Python, and leverages the ImageMagick library, written in <strong>C</strong>. </p>
+
+<h3>
+<a name="dependencies" class="anchor" href="#dependencies"><span class="octicon octicon-link"></span></a>Dependencies</h3>
+
+<ul>
+<li><strong>ImageMagick</strong></li>
+<li>
+<strong>Python</strong> 2.6+</li>
+<li>
+<strong>Wand</strong>(ctypes-based <strong>Python ImageMagick</strong> binding)</li>
+<li>
+<strong>H5py Python</strong> library</li>
+</ul><h3>
+<a name="user-guide" class="anchor" href="#user-guide"><span class="octicon octicon-link"></span></a>User Guide</h3>
+
+<pre><code>usage: tiff2hdf.py [-h] [-s] [-o] [-p PARAMETERS] [-l] input output
+
+A tool to convert TIFF files to HDF5 datasets.
+
+positional arguments:
+  input                 The input directory to be converted. This can also be
+                        a filename in the case that the -s flag is set.
+  output                The directory to which the file should be output. This
+                        can also be a filename in the case that the -s flag is
+                        set.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s, --single          Converts a single image.
+  -o, --overwrite       Overwrite all existing HDF5 files in directory.
+  -p PARAMETERS, --parameters PARAMETERS
+                        Specify the location of an LFDisplay-formatted optical
+                        parameter text file
+  -l, --lightsheet      Specifies the input images are light-sheet images
+
+</code></pre>
+
+<h2>
+<a name="autorectify-independent" class="anchor" href="#autorectify-independent"><span class="octicon octicon-link"></span></a>autorectify-independent</h2>
+
+<p>This tool analyzes microlens array images and computes parameters describing the size, spacing, and location of lenses. It takes an HDF5 file as input, and then outputs another HDF5 file with autorectification metadata.</p>
+
+<h3>
+<a name="technical-implementation-1" class="anchor" href="#technical-implementation-1"><span class="octicon octicon-link"></span></a>Technical Implementation</h3>
+
+<p>autorectify-independent is written in Python. It was originally written to be a component of LFDisplay, but has been modified to function as a command line tool.</p>
+
+<h3>
+<a name="dependencies-1" class="anchor" href="#dependencies-1"><span class="octicon octicon-link"></span></a>Dependencies</h3>
+
+<ul>
+<li>
+<strong>numpy</strong> library</li>
+<li>
+<strong>OpenCV</strong> Python bindings</li>
+<li>
+<strong>Matplotlib</strong> </li>
+<li>
+<strong>h5py</strong> library</li>
+</ul><h3>
+<a name="user-guide-1" class="anchor" href="#user-guide-1"><span class="octicon octicon-link"></span></a>User Guide</h3>
+
+<pre><code>usage: autorectify-independent.py [-h] [-v] [-p PERCENT] [-o OUTPUT] input
+
+A command-line tool to calculate lenslet rectifications
+
+positional arguments:
+  input                 The input file(HDF5).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Verbose mode
+  -p PERCENT, --percent PERCENT
+                        The percentage of images to be processed for a sample
+                        in a multi image dataset
+  -o OUTPUT, --output OUTPUT
+                        The filename or path of the output file(must have HDF5
+                        extension, not exist)
+
+</code></pre>
+
+<h2>
+<a name="autorectify-accelerated" class="anchor" href="#autorectify-accelerated"><span class="octicon octicon-link"></span></a>autorectify-accelerated</h2>
+
+<p>This tool is under development, and is a concurrent Go port of autorectify. It is not functional at the moment, as priority has shifted to other tasks.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/nemaload/workflow-utils/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/nemaload/workflow-utils/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/nemaload/workflow-utils"></a> is maintained by <a href="https://github.com/nemaload">nemaload</a>.</p>
+
+          <p>This page was generated by <a href="pages.github.com">GitHub Pages</a> using the Architect theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
