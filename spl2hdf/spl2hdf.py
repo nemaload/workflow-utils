@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# tiff2hdf converts TIFF images and image stacks to HDF5 datasets.
+# spl2hdf.py converts SPL files to HDF5 datasets.
 # Copyright (C) 2013 NEMALOAD
 
 # Authored by Michael Schmatz
@@ -23,11 +23,12 @@
 # nemaload.com
 
 
-import sys, argparse, os, numpy, h5py, glob, Image
+import sys, argparse, os, numpy, h5py, glob, Image, shutil, json
 import datetime
 import time
 
 from wand.image import Image as wandImage
+from subprocess import call
 
 #for ISO 8601 timezone calculation without external libraries
 class LocalTZ(datetime.tzinfo):
@@ -143,7 +144,9 @@ class imageConversion:
 			self.currentImage += 1
 			#break
 		except EOFError:
-			print "Reached end of stacked image..."
+			print "Experienced an EOF error, indicates irregular TIFF frame from SPL image..."
+			return -1
+		return 0
 
 
 	def saveAsRawNumpyArray(self):
@@ -189,6 +192,7 @@ class fileObject:
 	# MODIFIES: self.file
 	# EFFECTS: Creates an image group called "images" within the HDF5 file.
 		self.imageGroup = self.file.create_group("images")
+
 	def createNewDataset(self, datasetName, data):
 	# REQUIRES: image group is already created
 	# MODIFIES: self.imageGroup
@@ -218,14 +222,16 @@ if __name__ == '__main__':
 	#usage related code
 
 	parser = argparse.ArgumentParser(
-		prog='tiff2hdf.py',
-		description='A tool to convert TIFF files to HDF5 datasets.')
+		prog='spl2hdf.py',
+		description="""A tool to convert SPL files to HDF5 datasets. 
+		Note: The SPL data format is proprietary, so this program depends on an external jar file.""")
+	parser.add_argument("jar", type=str,
+		help="The path of the SPL conversion jar.")
 	parser.add_argument("input", type=str,
 		help="""The input directory to be converted. This can also
 		be a filename in the case that the -s flag is set.""")
 	parser.add_argument("output", type=str,
-		help="""The directory to which the file should be output. This can also
-		be a filename in the case that the -s flag is set.""")
+		help="""NOTE: This is non-functional due to a bug in the python STL. Files are output in directory script is run from.""")
 	parser.add_argument(
 		'-s',
 		'--single',
@@ -235,14 +241,7 @@ if __name__ == '__main__':
 		'--overwrite',
 		help="""Overwrite all existing HDF5 files in directory.""",
 		action="store_true")
-	parser.add_argument('-p',
-		'--parameters',
-		help="Specify the location of an LFDisplay-formatted optical parameter text file",
-		nargs=1)
-	parser.add_argument('-l',
-		'--lightsheet',
-		help="Specifies the input images are light-sheet images (currently non-functional)",
-		action="store_true")
+
 
 
 
@@ -250,34 +249,11 @@ if __name__ == '__main__':
 
 	inputPlace = args.input
 	outputPlace = args.output
-
-	if args.lightsheet:
-		imageType = "LS"
-	else:
-		imageType = "LF"
-
-	if args.parameters:
-		#parses the optical parameters
-		opticalProperties = args.parameters[0]
-
-		parameterFile = open(opticalProperties)
-		for line in parameterFile:
-			if line[0:5] == "pitch":
-				op_pitch = float(line[5:])
-			if line[0:4] == "flen":
-				op_flen = float(line[4:])
-			if line[0:3] == "mag":
-				op_mag = float(line[3:])
-			if line[0:4] == "abbe":
-				continue
-			if line[0:2] == "na":
-				op_na = float(line[2:])
-			if line[0:6] == "medium":
-				op_medium = float(line[6:])
-	elif not args.lightsheet:
-		op_pitch = op_flen = op_mag = op_na = op_medium = 0
+	jarPath = args.jar
 
 
+	imageType = "LS"
+	
 
 	#checking if -s flag is properly used
 	if args.single:
@@ -292,15 +268,15 @@ if __name__ == '__main__':
 		if not (os.path.isdir(inputPlace) and os.path.isdir(outputPlace)):
 			sys.exit("Both input and output directories must exist.")
 	#First, check if the input directory and output directory exist.
-		print "Finding tiff files..."
+		print "Finding SPL files..."
 		#first format the string to remove a trailing slash
 		if inputPlace[-1] is '/':
 			inputPlace = inputPlace[:-1]
 		if outputPlace[-1] is '/':
 			outputPlace = outputPlace[:-1]
-		fileList = glob.glob(inputPlace+'/*.tif') + glob.glob(inputPlace+'/*.tiff')
+		fileList = glob.glob(inputPlace+'/*.spl') 
 		if len(fileList) is 0:
-			sys.exit("There are no files in the input directory")
+			sys.exit("There are no input files in the input directory")
 	#Then, if it does, grab a list of files from the input.
 		#If directory contains no TIFF files, break
 		imageFileIndex = 0
@@ -314,72 +290,96 @@ if __name__ == '__main__':
 			imageFileIndex += 1
 
 
-		#For each file, check if the HDF5 file already exists in output directory.
-			#(actually this functionality is contained within the fileObject interface)
-			#If one is, check if -o flag is set. 
-				#If o flag is set, keep it in the file list.
-				#If not, then print out a message, remove it from the file list, and continue.
 
 
+	#work SPL magic here
+	#check jar file exists here:
+	frameTotal = 0
+	#create temp dir
+	try:
+		os.mkdir("./spltmp") #make temporary directory to generate tiffs in
+	except:
+		sys.exit("Error creating spltmp directory. Does it already exist? Do you have the correct permissions?")
 
-	#testing block
-	#For each image
-	for imageFileIndex in range(len(fileList)):
-		#Create an image conversion object
-		imageToConvert = imageConversion()
-		#Set the image's location to the proper place
-		imageToConvert.setImageLocation(fileList[imageFileIndex])
-		#Get the image's details
-		imageToConvert.getImageDetails()
-		#Create a file object and initialize
-		
-		if not args.single:
-			root, ext = os.path.splitext(fileList[imageFileIndex])
-			name = os.path.basename(root)	
-			name = outputPlace + '/' + name
-		else:
-			root, ext = os.path.splitext(outputPlace)
-			name = root
-		#fileToSave = fileObject(os.path.splitext(imageFile)[0],imageToConvert.width, imageToConvert.height)
-		fileToSave = fileObject(name,imageToConvert.width, imageToConvert.height)
-		print "Trying to open " + fileToSave.filename
+	for splFileIndex in range(len(fileList)): #this is the conversion loop
+		shutil.copy2(fileList[splFileIndex], "./spltmp") #copy SPL file into directory
+		#make parameters customizable
+		fileBaseName = os.path.basename(fileList[splFileIndex])
+		print "Converting file " + fileBaseName
+		fileCallString = "scala -cp " + args.jar + " ichi.apps.SplToTiff 4000 59 " + "./spltmp/" + fileBaseName
+		print "Calling: " + fileCallString
+		retcode = call(fileCallString, shell=True) #FILE BASE
+		if retcode is not 0:
+			print "There was a problem converting " + fileBaseName + ". Skipping..."
+			continue
+		root, ext = os.path.splitext(fileBaseName)
+
+		#now that the files are in tiff format, find json files and use them to parse the data
+		jsonFileList = glob.glob("./spltmp/*.json")
+		width = 128
+		height = 128
+		filename = root
+		fileToSave = fileObject(filename, width, height)
 		fileToSave.createFile()
-
-		if not imageToConvert.grayscaleCheck:
-			print "ERROR: Image " + imageToConvert.name + " is not grayscale."
-			print "Only grayscale images are supported. Please convert to grayscale and try again."
-			sys.exit(1)
-
-		#Load the image from the file
-		imageToConvert.loadImageFromFile()
-		#Create a group called image
 		fileToSave.createImageGroup()
-		#For each frame
-		for frameIndex in range(0, imageToConvert.numImages):
-			imageToConvert.loadImageFrameToArray()
-			#Load the frame to an array
+		print "Converting SPL chunks..."
+		for jsonFile in jsonFileList:
+			print "Extracting data using " + jsonFile
+			#create HDF5 file here
+			root, ext = os.path.splitext(jsonFile)
+			root, ext = os.path.splitext(root)
+			#ext now contains channel 
+			channelGroup = fileToSave.imageGroup.create_group(ext)
+			
+			json_data = open(jsonFile)
+			data = json.load(json_data)
+			for chunkIndex in range(len(data)):
+				chunkGroup = channelGroup.create_group(str(chunkIndex))
+				chunkGroup.attrs['ls_chunk_filename'] = str(data[chunkIndex]['filename'])
+				imageToConvert = imageConversion()
+				imageToConvert.setImageLocation("./spltmp/" + data[chunkIndex]['filename'])
+				imageToConvert.loadImageFromFile()
+				for frameIndex in range(len(data[chunkIndex]['data'])):
+					convertRet = imageToConvert.loadImageFrameToArray()
+					if convertRet is not 0:
+						print "Frame in question is: " + str(frameIndex) + " in chunk " + str(chunkIndex)
+					ds = chunkGroup.create_dataset(str(frameIndex), data=imageToConvert.rawImage, dtype='uint16')
+					frameDict = data[chunkIndex]['data'][frameIndex]
+					ds.attrs['ls_channel'] = frameDict['channel']
+					ds.attrs['ls_offset'] = frameDict['offset']
+					ds.attrs['ls_time'] =  frameDict['time']
+					ds.attrs['ls_ver']  = frameDict['ver']
+					ds.attrs['ls_n'] = frameDict['n']
+					ds.attrs['ls_z_request'] = frameDict['z'][0]
+					ds.attrs['ls_z_measured'] = frameDict['z'][1]
+					frameTotal += 1
 
-			# Do any alterations(bit casting) to that frame
-				#Generate lookup tables
-			#Create a new dataset
-			print "The shape of this frame is " + str(imageToConvert.rawImage.shape)
-			ds = fileToSave.createNewDataset(str(frameIndex),imageToConvert.rawImage)
-			#Put the frame in that dataset
-			#fileToSave.saveImageToDataset(imageToConvert)
-
-		fileToSave.imageGroup.attrs['originalName'] =  os.path.basename(name) + ext
-
-		print "Saved file with original name: " + os.path.basename(name) 
+		fileToSave.imageGroup.attrs['originalName'] =  fileBaseName
+		root, ext = os.path.splitext(fileBaseName)
+		print "Saved file " + root + '.hdf5'
 		#get time
 		fileToSave.imageGroup.attrs['createdAt'] = str(datetime.datetime.now(LocalTZ()).isoformat('T')) 
-		fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
+		fileToSave.imageGroup.attrs['numFrames'] = frameTotal
 		fileToSave.imageGroup.attrs['opticalSystem'] = imageType
-		if imageType == "LF":
-			fileToSave.imageGroup.attrs['op_pitch'] = op_pitch 
-			fileToSave.imageGroup.attrs['op_flen'] = op_flen
-			fileToSave.imageGroup.attrs['op_mag'] = op_mag
-			fileToSave.imageGroup.attrs['op_na'] = op_na
-			fileToSave.imageGroup.attrs['op_medium'] = op_medium
+		#moveCall = "sudo mv ./"+ root + ".hdf5 \"" + outputPlace + "\""
+		#shutil.move("./" + root + ".hdf5", outputPlace)
+		print "Converted file " + root + ".hdf5"
+		call("sudo rm ./spltmp/*.tiff", shell=True)
+		call("sudo rm ./spltmp/*.json", shell=True)
+		call("sudo rm ./spltmp/*.spl", shell=True)
+		print "Removed conversion byproducts"
+
+
+	#copy HDF5 back to input directory and delete temporary folder
+
+		
+	call("sudo rm -rf ./spltmp")
+
+
+
+
+
+
 
 
 

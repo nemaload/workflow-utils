@@ -6,3 +6,9 @@
 *.gz
 
 .DS_Store
+
+*.json
+
+*.tiff
+
+*.spl
