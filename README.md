@@ -80,8 +80,7 @@ optional arguments:
 
 This tool is under development, and is a concurrent Go port of autorectify. It is not functional at the moment, as priority has shifted to other tasks.
 
+## hdf-utils
 
-
-
-
-
+This is a set of scripts that can examine the lightsheet (and possibly lightfield?) HDF5 files
+and convert them to other formats.
