@@ -36,7 +36,7 @@ for (i, node) in sorted(h5file.get_node('/', objpath)._v_children.items(), key =
         imgdata = node.read()
     else:
         imgdata = numpy.vstack((imgdata, node.read()))
-    metadata['framedata'].append({'t': int(node.attrs['ls_time']), 'n': int(node.attrs['ls_n']), 'z': float(node.attrs['ls_z_measured'])})
+    metadata['framedata'].append({'t': int(node.attrs['ls_time']), 'n': int(node.attrs['ls_n']), 'z_r': float(node.attrs['ls_z_request']), 'z': float(node.attrs['ls_z_measured'])})
 
 scipy.misc.imsave('rawls.png', imgdata)
 print json.dumps(metadata)
