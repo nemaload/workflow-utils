@@ -29,6 +29,7 @@ imageObject = {
     'originalPath': os.path.abspath(filename),
     'baseName': basename,
     'size': os.stat(filename).st_size,
+    'folderId': db.folders.find({'name':'Unsorted'})[0]['_id'],
     'numFrames': 0,
     'channels': [],
     'relPath': []
