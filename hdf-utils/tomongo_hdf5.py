@@ -9,6 +9,7 @@ import sys
 
 import tables
 import pymongo
+import bson
 
 
 filename = sys.argv[1]
@@ -25,6 +26,10 @@ if Images.find({'relPath': basename + '/0/0'}).count() > 0:
     sys.exit(1)
 
 imageObject = {
+    # We go to extra lengths to make sure _id is not of type ObjectId
+    # which would be painful for Meteor.
+    '_id': str(bson.objectid.ObjectId()),
+
     'type': 'ls',
     'originalPath': os.path.abspath(filename),
     'baseName': basename,
