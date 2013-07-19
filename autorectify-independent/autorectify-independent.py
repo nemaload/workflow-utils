@@ -43,6 +43,8 @@ import argparse
 import random
 
 MAX_RADIUS = 30
+# These are colors of frames shown in debug image plots
+colors = [ "lightsalmon", "lightgreen", "lightblue", "red", "green", "blue" ]
 
 
 def autorectify(frame, maxu, verbose):
@@ -71,13 +73,12 @@ def autorectify_cv(frame, maxu, verbose):
     tiling.scan_brightness()
 
     n_samples = 16
-    # colors = [ "lightsalmon", "lightgreen", "lightblue", "red", "green", "blue" ]
     tiles = range(n_samples)
     rps = range(n_samples)
     for i in range(n_samples):
       while True:
        try:
-        (tiles[i], rps[i]) = sample_rp_from_tiling(frame, tiling, maxu, verbose)
+        (tiles[i], rps[i]) = sample_rp_from_tiling(frame, tiling, maxu, i, verbose)
 
        except IndexError:
         # IndexError can be thrown in case one of the areas reaches
@@ -146,7 +147,7 @@ def swapxy(a):
     """
     return numpy.array([a[1], a[0]])
 
-def sample_rp_from_tiling(frame, tiling, maxu,verbose):
+def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
     t = tiling.random_tile()
     s = tiling.tile_step
     perturb = [numpy.random.randint(-s/4, s/4), numpy.random.randint(-s/4, s/4)]
@@ -876,6 +877,7 @@ class ImageTiling:
                 else:
                     return color_bounds[i-1]
             sum_fract = sum_fract_2
+        #print "???"
         return 0.5 # unf, what else to do?
 
 #This is the command line stuff
