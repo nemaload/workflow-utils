@@ -239,10 +239,6 @@ if __name__ == '__main__':
 		'--parameters',
 		help="Specify the location of an LFDisplay-formatted optical parameter text file",
 		nargs=1)
-	parser.add_argument('-l',
-		'--lightsheet',
-		help="Specifies the input images are light-sheet images (currently non-functional)",
-		action="store_true")
 
 
 
@@ -251,10 +247,7 @@ if __name__ == '__main__':
 	inputPlace = args.input
 	outputPlace = args.output
 
-	if args.lightsheet:
-		imageType = "LS"
-	else:
-		imageType = "LF"
+	imageType = "LF"
 
 	if args.parameters:
 		#parses the optical parameters
@@ -274,7 +267,7 @@ if __name__ == '__main__':
 				op_na = float(line[2:])
 			if line[0:6] == "medium":
 				op_medium = float(line[6:])
-	elif not args.lightsheet:
+	else:
 		op_pitch = op_flen = op_mag = op_na = op_medium = 0
 
 
@@ -374,12 +367,8 @@ if __name__ == '__main__':
 		fileToSave.imageGroup.attrs['createdAt'] = str(datetime.datetime.now(LocalTZ()).isoformat('T')) 
 		fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
 		fileToSave.imageGroup.attrs['opticalSystem'] = imageType
-		if imageType == "LF":
-			fileToSave.imageGroup.attrs['op_pitch'] = op_pitch 
-			fileToSave.imageGroup.attrs['op_flen'] = op_flen
-			fileToSave.imageGroup.attrs['op_mag'] = op_mag
-			fileToSave.imageGroup.attrs['op_na'] = op_na
-			fileToSave.imageGroup.attrs['op_medium'] = op_medium
-
-
-
+		fileToSave.imageGroup.attrs['op_pitch'] = op_pitch 
+		fileToSave.imageGroup.attrs['op_flen'] = op_flen
+		fileToSave.imageGroup.attrs['op_mag'] = op_mag
+		fileToSave.imageGroup.attrs['op_na'] = op_na
+		fileToSave.imageGroup.attrs['op_medium'] = op_medium
