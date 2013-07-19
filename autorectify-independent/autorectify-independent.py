@@ -909,6 +909,10 @@ if __name__ == '__main__':
         nargs=1)
 
     args = parser.parse_args()
+    if args.verbose:
+        verboseMode = True
+    else:
+        verboseMode = False
 
     inputPlace = args.input
     #check that input file exists, and is a valid HDF5 file
@@ -946,10 +950,6 @@ if __name__ == '__main__':
         else:
             maxu = 0.0
 
-    if args.verbose:
-        verboseMode = True
-    else:
-        verboseMode = False
     rectification = ([0,0],[0,0],[0,0])
     for currentFrameIndex in framesToProcess:
         currentFrame = imageGroup[str(currentFrameIndex)].value
@@ -992,11 +992,3 @@ if __name__ == '__main__':
     autorectificationGroup.attrs['down_dy'] = down_dy
 
     outputFile.close()
-
-
-
-
-
-
-
-
