@@ -942,13 +942,15 @@ if __name__ == '__main__':
     #get maxu
     maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
     if 'op_flen' in imageGroup.attrs:
-        imagena = float(imageGroup.attrs['op_na']) / float(imageGroup.attrs['op_na'])
+        imagena = float(imageGroup.attrs['op_na']) / float(imageGroup.attrs['op_mag'])
         if imagena < 1.0:
             ulenslope = 1.0 * float(imageGroup.attrs['op_pitch']) / float(imageGroup.attrs['op_flen'])
             naslope = imagena / (1.0-imagena*imagena)**0.5
             maxu = float(naslope / ulenslope)
+            if verboseMode:
+                print "Using image-specific maxu of " + str(maxu)
         else:
-            maxu = 0.0
+            print "!!! Ignoring inconsistent optical parameters in the HDF5 file"
 
     rectification = ([0,0],[0,0],[0,0])
     for currentFrameIndex in framesToProcess:
