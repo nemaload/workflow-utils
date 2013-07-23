@@ -121,7 +121,7 @@ class imageConversion:
         #REQUIRES: self.getImageDetails must have already been called
         #EFFECTS: Return true if image is grayscale, false otherwise
 
-            if self.type is 'grayscale':
+        if self.type is 'grayscale':
             return true
         else:
             return false
