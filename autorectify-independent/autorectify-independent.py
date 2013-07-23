@@ -42,6 +42,9 @@ import sys
 import argparse
 import random
 
+import pymongo
+import bson
+
 MAX_RADIUS = 30
 # These are colors of frames shown in debug image plots
 colors = [ "lightsalmon", "lightgreen", "lightblue", "red", "green", "blue" ]
@@ -907,6 +910,11 @@ if __name__ == '__main__':
         '--output',
         help="The filename or path of the output file(must have HDF5 extension, not exist)",
         nargs=1)
+    parser.add_argument(
+        '-m',
+        '--mongodb',
+        help="Store data in MongoDB (of a nemashow Meteor instance) instead of a HDF5 file",
+        action="store_true")
 
     args = parser.parse_args()
     if args.verbose:
@@ -966,6 +974,7 @@ if __name__ == '__main__':
     for x in range(0,3):
         for y in range(0,2):
             rectification[x][y] /= float(numberOfImagesToProcess)
+
     #print out here
     x_offset = rectification[0][0]
     y_offset = rectification[0][1]
@@ -973,6 +982,22 @@ if __name__ == '__main__':
     right_dy = rectification[1][1]
     down_dx = rectification[2][0]
     down_dy = rectification[2][1]
+
+    if args.mongodb:
+        mongo = pymongo.Connection('localhost', 3002)
+        db = mongo.meteor
+        Images = db.images
+        basename = os.path.basename(inputPlace)
+        print 'baseName', basename
+        Images.update({'baseName': basename}, {'$set': {
+            "op_x_offset": x_offset,
+            "op_y_offset": y_offset,
+            "op_right_dx": right_dx,
+            "op_right_dy": right_dy,
+            "op_down_dx": down_dx,
+            "op_down_dy": down_dy}})
+        sys.exit(0)
+
     #spit out HDF5 file here
     if args.output:
         if os.path.isfile(args.output) or os.path.isfile(args.output):
