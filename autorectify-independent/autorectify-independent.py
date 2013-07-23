@@ -915,12 +915,20 @@ if __name__ == '__main__':
         '--mongodb',
         help="Store data in MongoDB (of a nemashow Meteor instance) instead of a HDF5 file",
         action="store_true")
+    parser.add_argument(
+        '-r',
+        '--randomseed',
+        help="Random generator seed (for reproducible autorectification runs)",
+        nargs=1)
 
     args = parser.parse_args()
     if args.verbose:
         verboseMode = True
     else:
         verboseMode = False
+
+    if args.randomseed is not None:
+        numpy.random.seed(args.randomseed)
 
     inputPlace = args.input
     #check that input file exists, and is a valid HDF5 file
