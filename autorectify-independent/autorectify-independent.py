@@ -319,8 +319,8 @@ class TileImage:
         step = 5
         while self.image[tuple(c)] != color:
             # Random walk over the neighborhood
-            c[0] += int(step*2 * random.random() - step)
-            c[1] += int(step*2 * random.random() - step)
+            c[0] += int(step*2 * numpy.random.random_sample() - step)
+            c[1] += int(step*2 * numpy.random.random_sample() - step)
             # print c, " -> ", self.image[tuple(c)]
         return c
 
@@ -439,10 +439,10 @@ def autorectify_de(frame, maxu, verbose):
             r3a = solutions[(si + 3) % solutions_n].to_array()
             dim_k = 5
             CR = 0.5/dim_k
-            F = 0.5 * (1 + random.random()) # [0.5,1) random
+            F = 0.5 * (1 + numpy.random.random_sample()) # [0.5,1) random
             co_k = numpy.random.randint(dim_k);
             for k in range(dim_k):
-                if k == co_k or random.random() < CR:
+                if k == co_k or numpy.random.random_sample() < CR:
                     #print " DE " + str(r1a[k]) + " " + str(r2a[k]) + " " + str(r3a[k])
                     sa[k] = r1a[k] + F * (r2a[k] - r3a[k])
 
@@ -564,10 +564,10 @@ class RectifyParams:
         """
         # XXX: Something better than uniformly random?
         self.size = numpy.array([0., 0.])
-        self.size[0] = self.minsize + random.random() * (self.maxsize - self.minsize)
-        self.size[1] = self.size[0] * (0.8 + random.random() * 0.4)
-        self.offset = numpy.array([random.random(), random.random()]) * self.size - self.size/2
-        self.tau = random.random() * math.pi/8
+        self.size[0] = self.minsize + numpy.random.random_sample() * (self.maxsize - self.minsize)
+        self.size[1] = self.size[0] * (0.8 + numpy.random.random_sample() * 0.4)
+        self.offset = numpy.array([numpy.random.random_sample(), numpy.random.random_sample()]) * self.size - self.size/2
+        self.tau = numpy.random.random_sample() * math.pi/8
         return self
 
     def gridsize(self):
@@ -621,11 +621,11 @@ class RectifyParams:
         # reset randomly so that our specimen do not cluster
         # around maxsize aimlessly.
         if self.size[0] > self.maxsize:
-            self.size[0] = self.minsize + random.random() * (self.maxsize - self.minsize)
+            self.size[0] = self.minsize + numpy.random.random_sample() * (self.maxsize - self.minsize)
         elif self.size[0] < self.minsize:
             self.size[0] = self.minsize
         if self.size[1] > self.maxsize:
-            self.size[1] = self.size[0] * (0.8 + random.random() * 0.4)
+            self.size[1] = self.size[0] * (0.8 + numpy.random.random_sample() * 0.4)
         elif self.size[1] < self.minsize:
             self.size[1] = self.minsize
 
@@ -808,7 +808,7 @@ class ImageTiling:
         among tiles (as pre-processed by scan_brightness().
         """
 
-        stab = random.random() * self.pdtiles_sum
+        stab = numpy.random.random_sample() * self.pdtiles_sum
         for t in numpy.mgrid[0:self.height_t, 0:self.width_t].T.reshape(self.height_t * self.width_t, 2):
             # t = [y,x] tile index
             prob = self.pdtiles[t[0], t[1]]
