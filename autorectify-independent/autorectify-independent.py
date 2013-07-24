@@ -45,6 +45,7 @@ import random
 import pymongo
 import bson
 
+MIN_RADIUS = 12
 MAX_RADIUS = 30
 # These are colors of frames shown in debug image plots
 colors = [ "lightsalmon", "lightgreen", "lightblue", "red", "green", "blue" ]
@@ -554,7 +555,7 @@ class RectifyParams:
 
     def __init__(self, framesize):
         self.framesize = numpy.array(framesize)
-        self.minsize = 12
+        self.minsize = MIN_RADIUS
         self.maxsize = MAX_RADIUS
 
     def randomize(self):
