@@ -96,14 +96,13 @@ def autorectify_cv(frame, maxu, verbose):
 
     # Show window with whole image, tile parts highlighted
     #f = plt.figure("whole")
-    #imgplot = plt.imshow(image.reshape(frame.height, frame.width), cmap = plt.cm.gray)
+    #imgplot = plt.imshow(image.reshape(image.shape[0], image.shape[1]), cmap = plt.cm.gray)
     #for i in range(n_samples):
     #    (ul, br) = tiles[i]
     #    ax = f.add_subplot(111)
     #    rect = matplotlib.patches.Rectangle((ul[1],ul[0]),
     #            width=tiling.tile_step, height=tiling.tile_step,
-    #            #edgecolor=colors[i], fill=0)
-    #            fill=0)
+    #            edgecolor=colors[i % len(colors)], fill=0)
     #    ax.add_patch(rect)
     #plt.show()
 
@@ -166,9 +165,9 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
     timage.threshold(maxu)
 
     # Show the tile
-    #print("tile " + str(i) + ": " + colors[i])
+    #print("tile " + str(i) + ": " + colors[i % len(colors)])
     #print timage.image
-    #plt.figure("Tile " + str(i) + ": " + colors[i])
+    #plt.figure("Tile " + str(i) + ": " + colors[i % len(colors)])
     #imgplot = plt.imshow(timage.image, cmap=plt.cm.gray)
     #plt.show()
 
@@ -176,7 +175,7 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
     timage.smooth()
 
     # Show the tile
-    #plt.figure("Smooth tile " + str(i) + ": " + colors[i])
+    #plt.figure("Smooth tile " + str(i) + ": " + colors[i % len(colors)])
     #imgplot = plt.imshow(timage.image, cmap=plt.cm.gray)
     #plt.show()
 
@@ -197,7 +196,7 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
     #        # print y, " ", x
     #        # print "  ", holematrix[y, x]
     #        punched[tuple(holematrix[y, x])] = 255
-    #plt.figure("Tile with hole center " + str(i) + ": " + colors[i])
+    #plt.figure("Tile with hole center " + str(i) + ": " + colors[i % len(colors)])
     #imgplot = plt.imshow(punched, cmap=plt.cm.gray)
     #plt.show()
 
@@ -211,7 +210,7 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
     #    for x in range(matrixsize*2):
     #        punched[tuple(lensmatrix[y, x])] = 64
     #print "lensmatrix", lensmatrix
-    #plt.figure("Tile with lens center " + str(i) + ": " + colors[i])
+    #plt.figure("Tile with lens center " + str(i) + ": " + colors[i % len(colors)])
     #imgplot = plt.imshow(punched, cmap=plt.cm.gray)
     #plt.show()
 
