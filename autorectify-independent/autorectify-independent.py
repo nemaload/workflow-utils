@@ -190,14 +190,13 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
                                for dx in range(-matrixsize, matrixsize+1)]
                               for dy in range(-matrixsize, matrixsize+1)])
 
-    punched = timage.image.copy() / 2
-    for y in range(matrixsize*2 + 1):
-        for x in range(matrixsize*2 + 1):
-            # print y, " ", x
-            # print "  ", holematrix[y, x]
-            punched[tuple(holematrix[y, x])] = 255
-
     # Show the holes
+    #punched = timage.image.copy() / 2
+    #for y in range(matrixsize*2 + 1):
+    #    for x in range(matrixsize*2 + 1):
+    #        # print y, " ", x
+    #        # print "  ", holematrix[y, x]
+    #        punched[tuple(holematrix[y, x])] = 255
     #plt.figure("Tile with hole center " + str(i) + ": " + colors[i])
     #imgplot = plt.imshow(punched, cmap=plt.cm.gray)
     #plt.show()
@@ -206,12 +205,11 @@ def sample_rp_from_tiling(frame, tiling, maxu, i, verbose):
                                for x in range(0, matrixsize*2)]
                               for y in range(0, matrixsize*2)])
 
-    punched = timage.image.copy() / 2
-    for y in range(matrixsize*2):
-        for x in range(matrixsize*2):
-            punched[tuple(lensmatrix[y, x])] = 64
-
     # Show the lens
+    #punched = timage.image.copy() / 2
+    #for y in range(matrixsize*2):
+    #    for x in range(matrixsize*2):
+    #        punched[tuple(lensmatrix[y, x])] = 64
     #print "lensmatrix", lensmatrix
     #plt.figure("Tile with lens center " + str(i) + ": " + colors[i])
     #imgplot = plt.imshow(punched, cmap=plt.cm.gray)
