@@ -121,23 +121,33 @@ def autorectify_cv(frame, maxu, verbose):
 
     # Incrementally look at and fine-tune more lens in four directions
     delta = 2
-    dirs = numpy.array([[1,0], [-1,0], [0,1], [0,-1]])
-    while dirs.shape[0] > 0:
+    TRAIN_GRID_DIAMETER = 64
+    TRAINING_STEPS = 8
+    while delta <= TRAIN_GRID_DIAMETER:
         if verbose:
             print "retuning delta", delta, "rp", rp
-        i = 0
-        while i < dirs.shape[0]:
-            try:
-                rp = refine_rp_by_lens_finetune(image, maxu, rp, delta * dirs[i],verbose)
-            except IndexError:
-                # Out of bounds in this direction, give up
-                dirs = numpy.delete(dirs, i, 0)
-                if verbose:
-                    print "out of bounds, remaining directions", dirs
-            else:
-                i += 1
-        delta *= 2
-    if verbose:  
+            # Show window with whole image and some lens dotting
+            #punched = image.reshape(image.shape[0], image.shape[1]).copy() / 8
+            #for dird in numpy.array([[1,0], [-1,0], [0,1], [0,-1]]):
+            #    for dirm in range(-TRAIN_GRID_DIAMETER, TRAIN_GRID_DIAMETER):
+            #        try:
+            #            punched[tuple(rp.xylens(dird * dirm))] = 255
+            #        except IndexError:
+            #            pass
+            #figdpi = 80.0
+            #fig = plt.figure("Image with lens dotting", figsize=(image.shape[0] / figdpi, image.shape[1] / figdpi), dpi=figdpi)
+            #fig.figimage(punched, cmap=plt.cm.gray)
+            #plt.show()
+
+        try:
+            rp = refine_rp_by_lens_finetune(image, maxu, rp, delta, verbose)
+        except IndexError:
+            print "out of bounds, stopping early"
+            break
+
+        delta = delta + TRAIN_GRID_DIAMETER / TRAINING_STEPS
+
+    if verbose:
         print "final rp", rp
     return rp
 
@@ -267,21 +277,34 @@ def finetune_lens_position(image, maxu, rp, lens0,verbose):
     return lens0
 
 def refine_rp_by_lens_finetune(image, maxu, rp, delta, verbose):
-    if verbose:
-        print "refine", delta
+    dirs = numpy.array([[1,0], [-1,0], [0,1], [0,-1]]) * delta
+
     (lensletOffset, lensletHoriz, lensletVert) = rp.to_steps()
-    lens_before = rp.xylens(delta)
-    lens_after = finetune_lens_position(image, maxu, rp, lens_before.copy(),verbose)
+    lens_before = [rp.xylens(d) for d in dirs]
+    lens_after = [finetune_lens_position(image, maxu, rp, l.copy(), verbose) for l in lens_before]
     if verbose:
-        print "  before", lens_before, "after", lens_after
-    if delta[0] != 0:
-        if verbose:
-            print "  horiz", (lens_after - lens_before)
-        lensletHoriz += (lens_after - lens_before) / delta[0]
-    if delta[1] != 0:
-        if verbose:
-            print "  vert", (lens_after - lens_before)
-        lensletVert += (lens_after - lens_before) / delta[1]
+        print "  before", lens_before
+        print "  after ", lens_after
+
+    lensletHorizNew = (lens_after[0] - lens_after[1]) / (delta*2)
+    lensletVertNew = (lens_after[2] - lens_after[3]) / (delta*2)
+
+    # Adjusted hypothesis regarding central point
+    lensletOffsetH = lens_after[1] + lensletHorizNew * delta;
+    lensletOffsetV = lens_after[3] + lensletVertNew * delta;
+    lensletOffsetNew = (lensletOffsetH + lensletOffsetV) / 2;
+
+    print "  h,v,o before", lensletHoriz, lensletVert, lensletOffset
+    print "  h,v,o after ", lensletHorizNew, lensletVertNew, lensletOffsetNew
+
+    # Update central point + steps with some weight; this makes sure
+    # one weird measurement will not ruin everything
+    uwfactor = math.sqrt(2./delta) # later updates move coordinates somewhat less
+    UPDATE_WEIGHT = numpy.array([0.8 * uwfactor, 0.8 * uwfactor]) # x,y
+    lensletOffset = lensletOffsetNew * UPDATE_WEIGHT + lensletOffset * (1.0 - UPDATE_WEIGHT)
+    lensletHoriz = lensletHorizNew * UPDATE_WEIGHT + lensletHoriz * (1.0 - UPDATE_WEIGHT)
+    lensletVert = lensletVertNew * UPDATE_WEIGHT + lensletVert * (1.0 - UPDATE_WEIGHT)
+
     rp.from_steps((lensletOffset, lensletHoriz, lensletVert), verbose)
     return rp
 
