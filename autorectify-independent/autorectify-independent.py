@@ -941,6 +941,11 @@ if __name__ == '__main__':
         '--randomseed',
         help="Random generator seed (for reproducible autorectification runs)",
         nargs=1)
+    parser.add_argument(
+        '-u',
+        '--maxu',
+        help="Maximum tangens of the lens viewing angle",
+        nargs=1)
 
     args = parser.parse_args()
     if args.verbose:
@@ -976,9 +981,16 @@ if __name__ == '__main__':
         else:
             sys.exit("Invalid percentage given. Exiting...")
     framesToProcess = random.sample(range(numberImages),numberOfImagesToProcess)
+
     #get maxu
-    maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
-    if 'op_flen' in imageGroup.attrs:
+    maxu_explicit = False
+    if args.maxu != None:
+        maxu = float(args.maxu[0])
+        maxu_explicit = True
+    elif 'op_maxu' in imageGroup.attrs:
+        maxu = float(imageGroup.attrs['op_maxu'])
+        maxu_explicit = True
+    elif 'op_flen' in imageGroup.attrs:
         imagena = float(imageGroup.attrs['op_na']) / float(imageGroup.attrs['op_mag'])
         if imagena < 1.0:
             ulenslope = 1.0 * float(imageGroup.attrs['op_pitch']) / float(imageGroup.attrs['op_flen'])
@@ -988,6 +1000,8 @@ if __name__ == '__main__':
                 print "Using image-specific maxu of " + str(maxu)
         else:
             print "!!! Ignoring inconsistent optical parameters in the HDF5 file"
+    else:
+        maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
 
     rectification = ([0,0],[0,0],[0,0])
     for currentFrameIndex in framesToProcess:
@@ -1025,6 +1039,8 @@ if __name__ == '__main__':
             "op_right_dy": right_dy,
             "op_down_dx": down_dx,
             "op_down_dy": down_dy}})
+        if maxu_explicit:
+            Images.update({'baseName': basename}, {'$set': {"op_maxu": maxu}})
         sys.exit(0)
 
     #spit out HDF5 file here
