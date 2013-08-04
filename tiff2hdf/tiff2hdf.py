@@ -240,6 +240,11 @@ if __name__ == '__main__':
         '--parameters',
         help="Specify the location of an LFDisplay-formatted optical parameter text file",
         nargs=1)
+    parser.add_argument(
+        '-u',
+        '--maxu',
+        help="Maximum tangens of the lens viewing angle",
+        nargs=1)
 
 
 
@@ -368,6 +373,8 @@ if __name__ == '__main__':
         fileToSave.imageGroup.attrs['createdAt'] = str(datetime.datetime.now(LocalTZ()).isoformat('T'))
         fileToSave.imageGroup.attrs['numFrames'] = imageToConvert.numImages
         fileToSave.imageGroup.attrs['opticalSystem'] = imageType
+        if args.maxu[0] is not None:
+            fileToSave.imageGroup.attrs['op_maxu'] = float(args.maxu[0])
         fileToSave.imageGroup.attrs['op_pitch'] = op_pitch
         fileToSave.imageGroup.attrs['op_flen'] = op_flen
         fileToSave.imageGroup.attrs['op_mag'] = op_mag
