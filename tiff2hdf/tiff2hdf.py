@@ -198,7 +198,8 @@ class fileObject:
         self.currentDataset = self.imageGroup.create_dataset(
             datasetName,
             data=data,
-            dtype=dt)
+            dtype=dt,
+            compression='lzf')
     def setAttribute(self, attributeName, stringContent):
     #Requires: current group must be set
         self.imageGroup.attrs[attributeName] = stringContent
