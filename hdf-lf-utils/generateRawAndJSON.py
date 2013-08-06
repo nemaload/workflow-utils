@@ -66,7 +66,7 @@ def processFile(file, outputDirectoryPath):
         rawFilePath = outputDirectoryPath + os.path.basename(file) + "-" + \
             outputDict[
                 "Name"] + ".raw"  # file to save binary image in
-        child = subprocess.Popen(["sudo", "h5dump", "-d", datasetPath, "-b", outputDict[
+        child = subprocess.Popen(["h5dump", "-d", datasetPath, "-b", outputDict[
                                  "DataType"]["ByteOrder"], "-o", rawFilePath, file], stdout=subprocess.PIPE)
         out, err = child.communicate()  # [0] is stdout, [1] is stderr
         returnCode = child.returncode
