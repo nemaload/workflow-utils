@@ -1,14 +1,7 @@
-
 *.hdf5
-
 *.tif
-
 *.gz
-
 .DS_Store
-
 *.json
-
 *.tiff
-
 *.spl
