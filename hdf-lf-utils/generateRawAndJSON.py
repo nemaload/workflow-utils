@@ -8,28 +8,13 @@ from xml.dom import minidom
 import json
 
 # USAGE
-# ./generateRawAndJSON.py [inputDirectoryName] [outputDirectoryName]
+# ./generateRawAndJSON.py [inputFileName] [outputDirectory]
 
 # convenience function to convert string to bool
-
-
 def parseStringToBool(inputString):
     return ("a" not in inputString)
 
-directoryPath = os.path.normpath(
-    sys.argv[1]) + os.sep  # needed to standardize file path
-print "Generating JSON for HDF5 files in directory " + directoryPath
-outputDirectoryPath = os.path.normpath(sys.argv[2]) + os.sep
-
-hdf5files = []
-for file in os.listdir(directoryPath):
-    if fnmatch.fnmatch(file, '*.hdf5'):  # get all HDF5 files in directory
-        if "autorectify" not in file:  # but not autorectification files
-            hdf5files.append(file)
-
-print "Found " + str(len(hdf5files)) + " HDF5 files. Processing..."
-
-for file in hdf5files:
+def processFile(file, outputDirectoryPath):
     # dump XML version of HDF5 file attributes
     child = subprocess.Popen(
         ["h5dump", "-uA", file], stdout=subprocess.PIPE)
@@ -37,8 +22,8 @@ for file in hdf5files:
     unprocessedXML = child.communicate()[0]  # get the stdout as a string
     returnCode = child.returncode
     if returnCode is not 0:
-        print directoryPath + file + " was not successfully processed"
-        continue
+        print file + " was not successfully processed"
+        return False
     xmldoc = minidom.parseString(
         unprocessedXML)  # parse the XML output string
 
@@ -71,14 +56,14 @@ for file in hdf5files:
                     if typeChild and typeChild.localName:
                         outputDict["DataType"] = {"Type": typeChild.localName, "ByteOrder": typeChild.attributes["ByteOrder"].nodeValue, "Sign": parseStringToBool(
                                                   typeChild.attributes["Sign"].nodeValue), "Size": int(typeChild.attributes["Size"].nodeValue)}
-        outputFilePath = outputDirectoryPath + file + "-" + \
+        outputFilePath = outputDirectoryPath + os.path.basename(file) + "-" + \
             outputDict["Name"] + ".json"  # file to save JSON in
         jsonFile = open(outputFilePath, "w")
         # write the dictionary in JSON form
         jsonFile.write(json.dumps(outputDict))
         jsonFile.close()
         print "Wrote file " + outputFilePath + ". Converting file to binary format..."
-        rawFilePath = outputDirectoryPath + file + "-" + \
+        rawFilePath = outputDirectoryPath + os.path.basename(file) + "-" + \
             outputDict[
                 "Name"] + ".raw"  # file to save binary image in
         child = subprocess.Popen(["sudo", "h5dump", "-d", datasetPath, "-b", outputDict[
@@ -88,8 +73,13 @@ for file in hdf5files:
         if returnCode is not 0:
             print rawFilePath + " was not successfully generated."
             print err
-            continue
+            return False
         else:
             print rawFilePath + " was successfully generated."
+    return True
 
-print "Program finished execution"
+if __name__ == '__main__':
+    file = sys.argv[1]
+    outputDirectoryPath = os.path.normpath(sys.argv[2]) + os.sep
+    if not processFile(file, outputDirectoryPath):
+        sys.exit(1)
