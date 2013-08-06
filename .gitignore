@@ -5,3 +5,5 @@
 *.json
 *.tiff
 *.spl
+.*
+*.pyc
