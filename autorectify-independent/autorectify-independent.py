@@ -42,6 +42,7 @@ import sys
 import argparse
 import random
 
+import hdf5lflib
 import pymongo
 import bson
 
@@ -983,25 +984,11 @@ if __name__ == '__main__':
     framesToProcess = random.sample(range(numberImages),numberOfImagesToProcess)
 
     #get maxu
-    maxu_explicit = False
     if args.maxu != None:
         maxu = float(args.maxu[0])
         maxu_explicit = True
-    elif 'op_maxu' in imageGroup.attrs:
-        maxu = float(imageGroup.attrs['op_maxu'])
-        maxu_explicit = True
-    elif 'op_flen' in imageGroup.attrs:
-        imagena = float(imageGroup.attrs['op_na']) / float(imageGroup.attrs['op_mag'])
-        if imagena < 1.0:
-            ulenslope = 1.0 * float(imageGroup.attrs['op_pitch']) / float(imageGroup.attrs['op_flen'])
-            naslope = imagena / (1.0-imagena*imagena)**0.5
-            maxu = float(naslope / ulenslope)
-            if verboseMode:
-                print "Using image-specific maxu of " + str(maxu)
-        else:
-            print "!!! Ignoring inconsistent optical parameters in the HDF5 file"
     else:
-        maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
+        (maxu, maxu_explicit) = hdf5lflib.compute_maxu(imageGroup)
 
     rectification = ([0,0],[0,0],[0,0])
     for currentFrameIndex in framesToProcess:
