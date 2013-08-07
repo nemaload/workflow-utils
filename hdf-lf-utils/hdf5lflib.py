@@ -25,3 +25,30 @@ def compute_maxu(imageGroup):
     else:
         maxu = 0.4667937556007068 #calculated from only optics data available at the time, serves as default
     return (maxu, maxu_explicit)
+
+def lenslets_offset2corner(ar):
+    """
+    Walk from the lenslets offset point to the point of the grid
+    nearest to the top left corner.
+    """
+    corner = [ar._v_attrs['y_offset'], ar._v_attrs['x_offset']]
+
+    changed = True
+    while changed:
+        changed = False
+        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dx'] and corner[1] > ar._v_attrs['down_dy']:
+            corner[0] -= ar._v_attrs['down_dx']
+            corner[1] -= ar._v_attrs['down_dy']
+            changed = True
+        if corner[0] > ar._v_attrs['right_dx'] and corner[1] > ar._v_attrs['right_dy']:
+            corner[0] -= ar._v_attrs['right_dx']
+            corner[1] -= ar._v_attrs['right_dy']
+            changed = True
+        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dx'] and corner[1] > ar._v_attrs['down_dy']:
+            corner[0] -= ar._v_attrs['down_dx']
+            corner[1] -= ar._v_attrs['down_dy']
+            changed = True
+    # FIXME: Note that we might get stuck at a point where we e.g. still have
+    # some room to go many steps up at the cost of going one step right.
+
+    return corner
