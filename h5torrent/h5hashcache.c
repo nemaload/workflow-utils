@@ -13,8 +13,15 @@ All rights reserved.
 #include <string.h>
 #include <stdbool.h>
 #include <curl/curl.h>
-
+#include <errno.h>
 #include <sys/stat.h>
+
+//convenience functions
+int file_exist (char *filename)
+{
+  struct stat   buffer;   
+  return (stat (filename, &buffer) == 0);
+}
 
 //declaration of function from C wrapper of libtorrent
 int downloadTorrentFile(char*, size_t, char *, bool);
@@ -68,7 +75,7 @@ struct MemoryStruct * getTorrentData(char * url)
 }
 int main(int argc, char **argv)
 {
-  if( argc > 3) //check if too many arguments
+  if( argc > 3 || argc < 2) //check if too many arguments
     return 1;
 
   char *HDF5Hash = argv[1];
@@ -92,27 +99,73 @@ int main(int argc, char **argv)
   }
   //get the hash prefix and suffix
   char prefix[3];
+  prefix[0] = 0;
   memcpy(prefix,HDF5Hash, 2);
+
   prefix[2] = '\0'; //null terminate the string
   char suffix[39];
+  suffix[0] = 0;
   memcpy(suffix,&HDF5Hash[2],39);
   suffix[38] = '\0';
+  
+
+  //check cache directory for trailing slash, and add one if necessary
+  char * slash = "/";
+  if (strncmp(&saveDirectory[strlen(saveDirectory)-1], slash, 1)) {
+    strcat(saveDirectory, "/");
+  }
+
+  //now construct the filepath
+  char fullPath[strlen(saveDirectory) + 50];
+  fullPath[0] = 0;
+  strcat(fullPath, saveDirectory);
+
+  strcat(fullPath, prefix);
+  strcat(fullPath, "/");
+
+  char torrentSavePath[strlen(fullPath)]; //for the function call
+  torrentSavePath[0] = 0;
+  strcpy(torrentSavePath, fullPath);
+  strcat(fullPath, suffix);
 
   //now check for file existence
+  if (file_exist(fullPath))
+    return 0; //file already exists
   
+
+  //if file doesn't exist, fetch
+
   char * baseURL = "https://s3.amazonaws.com/nemaload.data/cache/";
-  char torrentURL[120];
+  char torrentURL[100];
+  torrentURL[0] = 0;
   //construct the URL
   strcat(torrentURL, baseURL);
-  strcat(torrentURL, "/");
   strcat(torrentURL, prefix);
   strcat(torrentURL, "/");
   strcat(torrentURL, suffix);
   strcat(torrentURL, "?torrent");
-
   struct MemoryStruct *returnChunk =  getTorrentData(torrentURL);
-  if (downloadTorrentFile(returnChunk->memory, returnChunk->size, "", true))
-    return 0;
+  //check if torrent save path exists, if not create
+  struct stat sb;
+  int returnCode = 0;
+  printf("%s\n", torrentSavePath);
+  if (!(stat(torrentSavePath, &sb) == 0 && S_ISDIR(sb.st_mode)))
+      returnCode = mkdir(torrentSavePath, 0777);
+  if (returnCode)
+    printf("%s", strerror(errn));
   return 1;
-  return 0;
+  if (downloadTorrentFile(returnChunk->memory, returnChunk->size, torrentSavePath, true))
+  {
+    //rename file 
+    //filename is cache_prefix_suffix
+    char originalLocation[50 + strlen(torrentSavePath)];
+    strcat(originalLocation, torrentSavePath);
+    strcat(originalLocation, "cache_");
+    strcat(originalLocation, prefix);
+    strcat(originalLocation, "_");
+    strcat(originalLocation, suffix);
+    rename(originalLocation, fullPath);
+    return 0; 
+  }
+  return 1;
 }
