@@ -15,6 +15,7 @@ All rights reserved.
 #include <curl/curl.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include "h5torrent.h"
 
 //convenience functions
 int file_exist (char *filename)
@@ -73,18 +74,17 @@ struct MemoryStruct * getTorrentData(char * url)
   //curl_global_cleanup(); //this function is NOT thread safe
   return chunk;
 }
-int main(int argc, char **argv)
-{
-  if( argc > 3 || argc < 2) //check if too many arguments
-    return 1;
 
-  char *HDF5Hash = argv[1];
+int getTorrent(char *hash, char *cacheDirectory)
+{
+
+  char *HDF5Hash = hash;
   if (strlen(HDF5Hash) != 40) //length of SHA1 hash
     return 1;
   char *saveDirectory;
-  if(argc == 3) //directory supplied
+  if(cacheDirectory != NULL) //directory supplied
   {
-    saveDirectory = argv[2];
+    saveDirectory = cacheDirectory;
     struct stat sb;
     if (!(stat(saveDirectory, &sb) == 0 && S_ISDIR(sb.st_mode)))
       return 1;
