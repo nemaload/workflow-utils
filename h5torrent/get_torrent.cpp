@@ -37,6 +37,12 @@ extern "C" {
                                         usleep(1000000);
                                 }
                         }
+                        else
+                        {
+                                while(!currentHandle.is_seed()) {
+                                        //wait until file is downloaded
+                                }
+                        }
                         return 0;
                 }
                 catch (std::exception& e)
