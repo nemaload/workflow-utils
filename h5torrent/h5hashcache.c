@@ -1,5 +1,7 @@
+//USAGE
+// ./h5torrent <hash> [HDF5Cache directory]
 /*
-COPYRIGHT AND PERMISSION NOTICE
+cURL COPYRIGHT AND PERMISSION NOTICE
  
 Copyright (c) 1996 - 2013, Daniel Stenberg, <daniel@haxx.se>.
  
@@ -12,16 +14,19 @@ All rights reserved.
 #include <stdbool.h>
 #include <curl/curl.h>
 
-//int downloadTorrentFile(char *torrentData, char *outputPath, bool verbose);
+#include <sys/stat.h>
 
+//declaration of function from C wrapper of libtorrent
+int downloadTorrentFile(char*, size_t, char *, bool);
+
+//data structure to hold cURL'd torrent data
 struct MemoryStruct {
   char *memory;
   size_t size;
 };
  
- 
-static size_t
-WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+ //function to write cURL'd data to data structure above
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
   size_t realsize = size * nmemb;
   struct MemoryStruct *mem = (struct MemoryStruct *)userp;
@@ -39,7 +44,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
  
   return realsize;
 }
- 
+//function to fetch torrent data from URL
 struct MemoryStruct * getTorrentData(char * url)
 {
   CURL *curl_handle;
@@ -58,14 +63,55 @@ struct MemoryStruct * getTorrentData(char * url)
   res = curl_easy_perform(curl_handle);
   curl_easy_cleanup(curl_handle);
  
-  curl_global_cleanup();
+  //curl_global_cleanup(); //this function is NOT thread safe
   return chunk;
 }
-int main(void)
+int main(int argc, char **argv)
 {
+  if( argc > 3) //check if too many arguments
+    return 1;
+
+  char *HDF5Hash = argv[1];
+  if (strlen(HDF5Hash) != 40) //length of SHA1 hash
+    return 1;
+  char *saveDirectory;
+  if(argc == 3) //directory supplied
+  {
+    saveDirectory = argv[2];
+    struct stat sb;
+    if (!(stat(saveDirectory, &sb) == 0 && S_ISDIR(sb.st_mode)))
+      return 1;
+  }
+  else { //check for environment variable
+    char * HDF5CacheDirectory;
+    HDF5CacheDirectory = getenv("HDF5CACHE");
+    if (!HDF5CacheDirectory)
+      return 1;
+    else 
+      saveDirectory = HDF5CacheDirectory;
+  }
+  //get the hash prefix and suffix
+  char prefix[3];
+  memcpy(prefix,HDF5Hash, 2);
+  prefix[2] = '\0'; //null terminate the string
+  char suffix[39];
+  memcpy(suffix,&HDF5Hash[2],39);
+  suffix[38] = '\0';
+
+  //now check for file existence
   
-  struct MemoryStruct *returnChunk =  getTorrentData("https://s3.amazonaws.com/nemaload.data/cache/00/5190f535521cf675c73551b34d74a986b0b50f?torrent");
-  if (downloadTorrentFile(returnChunk->memory, "", true))
+  char * baseURL = "https://s3.amazonaws.com/nemaload.data/cache/";
+  char torrentURL[120];
+  //construct the URL
+  strcat(torrentURL, baseURL);
+  strcat(torrentURL, "/");
+  strcat(torrentURL, prefix);
+  strcat(torrentURL, "/");
+  strcat(torrentURL, suffix);
+  strcat(torrentURL, "?torrent");
+
+  struct MemoryStruct *returnChunk =  getTorrentData(torrentURL);
+  if (downloadTorrentFile(returnChunk->memory, returnChunk->size, "", true))
     return 0;
   return 1;
   return 0;

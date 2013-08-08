@@ -15,7 +15,7 @@
 #include <pthread.h>
 
 extern "C" {
-        int downloadTorrentFile(char *torrentData, char *outputPath, bool verbose)
+        int downloadTorrentFile(char *torrentData, size_t torrentDataSize, char *outputPath, bool verbose)
         {
                 using namespace libtorrent;
                 try {
@@ -24,7 +24,7 @@ extern "C" {
                         s.listen_on(std::make_pair(6881, 6889));
                         //may need to add 1 to strlen to account for null character
 
-                        entry e = bdecode(torrentData, torrentData + strlen(torrentData)); 
+                        entry e = bdecode(torrentData, torrentData +torrentDataSize); 
                         //s.add_torrent(torrent_info(e), "");
                         torrent_handle currentHandle = s.add_torrent(torrent_info(e), outputPath);
                         //repeat occasional status in verbose mode
@@ -32,9 +32,9 @@ extern "C" {
                         {
                                 while (! currentHandle.is_seed() ) {
                                         torrent_status currentStatus = currentHandle.status();
-                                        std::cout << "Download Rate " << currentStatus.download_rate << std::endl;
-                                        //may cause issues if it suspends the session
-                                        sleep(3);
+                                        std::cout << "Download Rate " << currentStatus.download_payload_rate/1000 << "kB/s" <<std::endl;
+                                        std::cout << "Percent done: " << currentStatus.progress * 100 << std::endl;
+                                        usleep(1000000);
                                 }
                         }
                         return 0;
