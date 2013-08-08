@@ -148,17 +148,17 @@ int main(int argc, char **argv)
   //check if torrent save path exists, if not create
   struct stat sb;
   int returnCode = 0;
-  printf("%s\n", torrentSavePath);
   if (!(stat(torrentSavePath, &sb) == 0 && S_ISDIR(sb.st_mode)))
       returnCode = mkdir(torrentSavePath, 0777);
   if (returnCode)
-    printf("%s", strerror(errn));
-  return 1;
-  if (downloadTorrentFile(returnChunk->memory, returnChunk->size, torrentSavePath, true))
+    return 1;
+
+  if (!downloadTorrentFile(returnChunk->memory, returnChunk->size, torrentSavePath, false))
   {
     //rename file 
     //filename is cache_prefix_suffix
     char originalLocation[50 + strlen(torrentSavePath)];
+    originalLocation[0] = 0;
     strcat(originalLocation, torrentSavePath);
     strcat(originalLocation, "cache_");
     strcat(originalLocation, prefix);
