@@ -21,7 +21,6 @@ extern "C" {
                 try {
 
                         session s;
-                        return 0;
                         s.listen_on(std::make_pair(6881, 6889));
                         //may need to add 1 to strlen to account for null character
 
