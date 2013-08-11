@@ -3,7 +3,7 @@
 # Generate a raw image with the sample view from a certain U,V viewpoint
 # from a lightfield image
 #
-# Usage: ./generateUVRaw.py inputFile outputDir ofs_U ofs_V
+# Usage: ./generateUVRaw.py inputFile outputDir ofs_U ofs_V ["raw"|"png"]
 #
 # FIXME: Generates a PNG image now
 
@@ -16,11 +16,15 @@ import scipy.misc
 import tables
 import hdf5lflib
 
-def processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar):
+gridsize_last = []
+
+def processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar, imgfmt):
     imgdata = node.read()
     # scipy.misc.imsave('rawimage.png', imgdata)
 
     gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
+    global gridsize_last
+    gridsize_last = gridsize
     corner = hdf5lflib.lenslets_offset2corner(ar)
 
     # We also rotate the image by 90\deg during the processing to maintain
@@ -42,20 +46,31 @@ def processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar):
                 #print cx, cy, gridsize[1]-1 - x, y, '---'
                 pass
 
-    scipy.misc.imsave(outputBase + '-' + str(i) + '.png', uvframe)
+    if imgfmt == 'png':
+        scipy.misc.imsave(outputBase + '-' + str(i) + '.png', uvframe)
+    else:
+        f = open(outputBase + '-' + str(i) + '.raw', 'wb')
+        uvframe.tofile(f)
+        f.close()
 
-def processFileUV(filename, outputDirectoryPath, ofs_U, ofs_V):
+def processFileUV(filename, outputDirectoryPath, ofs_U, ofs_V, imgfmt):
     h5file = tables.open_file(filename, mode = "r")
     ar = h5file.get_node('/', '/autorectification')
     outputBase = outputDirectoryPath + os.path.splitext(os.path.basename(filename))[0]
     for (i, node) in sorted(h5file.get_node('/', '/images')._v_children.items(), key = lambda j: int(j[0])):
         print outputBase, i
-        processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar)
+        processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar, imgfmt)
+    return True
 
 if __name__ == '__main__':
     filename = sys.argv[1]
     outputDirectoryPath = os.path.normpath(sys.argv[2]) + os.sep
     ofs_U = sys.argv[3]
     ofs_V = sys.argv[4]
-    if not processFileUV(filename, outputDirectoryPath, float(ofs_U), float(ofs_V)):
+    if sys.argv[5]:
+        imgfmt = sys.argv[5]
+    else:
+        imgfmt = 'raw'
+    if not processFileUV(filename, outputDirectoryPath, float(ofs_U), float(ofs_V), imgfmt):
         sys.exit(1)
+    print 'output dimensions', gridsize_last
