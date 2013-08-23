@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Usage: export_hdf5.py FILENAME OBJPATH
+# Usage: hdf5export.py FILENAME OBJPATH
 #
 # Export a set of frames from HDF5 file in a way suitable for WebGL
 # visualization. The output is a file `rawls.png` with a tiling
@@ -8,7 +8,7 @@
 # same object at different z). At the same time, JSON with some
 # metadata is printed on stdout.
 #
-# Example: ./export_hdf5.py 16_4-15_27.hdf5 /images/.ch0/0 >rawls.json
+# Example: ./hdf5export.py 16_4-15_27.hdf5 /images/.ch0/0 >rawls.json
 
 import sys
 

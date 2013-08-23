@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# Usage: tomongo_hdf5.py FILENAME
+# Usage: hdf5tomongo.py FILENAME
 #
-# Example: ./tomongo_hdf5.py 16_4-15_27.hdf5
+# Example: ./hdf5tomongo.py 16_4-15_27.hdf5
 
 import os
 import sys

@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# Usage: list_hdf5.py FILENAME
+# Usage: hdf5list.py FILENAME
 #
-# Example: ./list_hdf5.py 16_4-15_27.hdf5
+# Example: ./hdf5list.py 16_4-15_27.hdf5
 
 import sys
 

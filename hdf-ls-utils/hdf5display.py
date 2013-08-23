@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# Usage: display_hdf5.py FILENAME OBJPATH...
+# Usage: hdf5display.py FILENAME OBJPATH...
 #
-# Example: display_hdf5.py 16_4-15_27.hdf5 images/.ch0/0/0 images/.ch1/0/0
+# Example: hdf5display.py 16_4-15_27.hdf5 images/.ch0/0/0 images/.ch1/0/0
 
 import sys
 
