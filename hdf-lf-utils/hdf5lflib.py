@@ -57,7 +57,7 @@ def lenslets_offset2corner(ar):
     return corner
 
 
-def compute_uvframe(node, ar, ofs_U = 0., ofs_V = 0.):
+def compute_uvframe(node, ar, cw, ofs_U = 0., ofs_V = 0.):
     """
     Generate a view of the sample from a particular (U,V) viewpoint
     from the lightsheet data (as stored in HDF5 @node). The view
@@ -72,6 +72,9 @@ def compute_uvframe(node, ar, ofs_U = 0., ofs_V = 0.):
 
     (right_dx, right_dy) = ar._v_attrs['right_dx'], ar._v_attrs['right_dy']
     (down_dx, down_dy) = ar._v_attrs['down_dx'], ar._v_attrs['down_dy']
+    if cw is not None:
+        (x0, y0, x1, y1) = (cw._v_attrs[j] for j in ('x0', 'y0', 'x1', 'y1'))
+        imgdata = imgdata[y0:y1 , x0:x1]
 
     corner = lenslets_offset2corner(ar)
     gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
