@@ -63,26 +63,27 @@ def compute_uvframe(node, ar, ofs_U = 0., ofs_V = 0.):
     from the lightsheet data (as stored in HDF5 @node). The view
     is returned as a numpy 2D array.
     """
-    imgdata = node.read()
-    # scipy.misc.imsave('rawimage.png', imgdata)
-
-    gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
-    corner = lenslets_offset2corner(ar)
 
     # We also rotate the image by 90\deg during the processing to maintain
     # compatibility with other parts of our toolchain.
 
-    uvframe = numpy.zeros(shape=(gridsize[1], gridsize[0]), dtype='short')
+    imgdata = node.read()
+    # scipy.misc.imsave('rawimage.png', imgdata)
 
     (right_dx, right_dy) = ar._v_attrs['right_dx'], ar._v_attrs['right_dy']
     (down_dx, down_dy) = ar._v_attrs['down_dx'], ar._v_attrs['down_dy']
 
+    corner = lenslets_offset2corner(ar)
+    gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
+
+    uvframe = numpy.zeros(shape=(gridsize[1], gridsize[0]), dtype='short')
+
     for y in range(int(gridsize[0])):
         for x in range(int(gridsize[1])):
-            cx = corner[1] + x * right_dx + y * down_dx + ofs_U
-            cy = corner[0] + x * right_dy + y * down_dy + ofs_V
+            cx = int(round(corner[1] + x * right_dx + y * down_dx + ofs_U))
+            cy = int(round(corner[0] + x * right_dy + y * down_dy + ofs_V))
             try:
-                uvframe[gridsize[1]-1 - x][y] = imgdata[int(round(cy))][int(round(cx))]
+                uvframe[gridsize[1]-1 - x][y] = imgdata[cy][cx]
                 #print cx, cy, gridsize[1]-1 - x, y, int(uvframe[gridsize[1]-1 - x][y])
             except IndexError:
                 #print cx, cy, gridsize[1]-1 - x, y, '---'
