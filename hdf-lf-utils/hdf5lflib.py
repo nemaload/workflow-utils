@@ -57,7 +57,7 @@ def lenslets_offset2corner(ar):
     return corner
 
 
-def compute_uvframe(node, ar, ofs_U, ofs_V):
+def compute_uvframe(node, ar, ofs_U = 0., ofs_V = 0.):
     """
     Generate a view of the sample from a particular (U,V) viewpoint
     from the lightsheet data (as stored in HDF5 @node). The view
