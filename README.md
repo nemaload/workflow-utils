@@ -84,3 +84,7 @@ This tool is under development, and is a concurrent Go port of autorectify. It i
 
 This is a set of scripts that can examine the lightsheet (and possibly lightfield?) HDF5 files
 and convert them to other formats.
+
+## pose-extract
+
+This tool analyses a pose of the captured worm and outputs a set of control points for the virtual backbone (i.e. central axis) of the worm.
