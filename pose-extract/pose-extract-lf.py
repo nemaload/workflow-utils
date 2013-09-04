@@ -266,7 +266,7 @@ def printTSV(backbone):
     for point in backbone:
         print 0, point[0], point[1]
 
-def processFrame(i, node, outputBase, ar, cw):
+def processFrame(i, node, ar, cw):
     uvframe = hdf5lflib.compute_uvframe(node, ar, cw)
 
     if PROGRESS_FIGURES:
@@ -309,17 +309,15 @@ def processFrame(i, node, outputBase, ar, cw):
     # Convert to TSV and output
     printTSV(backbone)
 
-def processFile(filename, outputDirectoryPath, frameNo):
+def processFile(filename, frameNo):
     h5file = tables.open_file(filename, mode = "r")
     ar = h5file.get_node('/', '/autorectification')
     cw = h5file.get_node('/', '/cropwindow')
-    outputBase = outputDirectoryPath + os.path.splitext(os.path.basename(filename))[0]
-    processFrame(frameNo, h5file.get_node('/', '/images/' + str(frameNo)), outputBase, ar, cw)
+    processFrame(frameNo, h5file.get_node('/', '/images/' + str(frameNo)), ar, cw)
     return True
 
 if __name__ == '__main__':
     filename = sys.argv[1]
     frameNo = int(sys.argv[2])
-    outputDirectoryPath = sys.argv[3]
-    if not processFile(filename, outputDirectoryPath, frameNo):
+    if not processFile(filename, frameNo):
         sys.exit(1)
