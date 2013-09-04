@@ -9,6 +9,27 @@
 # is printed on stdout: one line per point with the coordinates
 # in order "z y x".
 
+# Our algorithm is:
+# 1. Convert the original image to a "blob mask" with the body of the
+#    worm white and the rest black.
+# 2. Sample uniformly random points from the blob as potential backbone
+#    control points.
+# 3. Create a "rough backbone" by generating a complete graph on top
+#    of the control points, generating the minimum spanning tree (weight
+#    based on euclidean distances) and then taking the diameter of the
+#    MST as the backbone path; drop all points not part of the diameter.
+#    The backbone will wiggle around and meander, but it will roughly
+#    span the whole (visible) elongated body. This idea comes from
+#    Peng et al., Straightening C. elegans Images.
+# 4. Annotate each pixel of the blob with the distance and direction
+#    of the nearest blob edge.
+# 5. Move each point in the _opposite_ direction from the edge so that
+#    it maximizes the distance from the edge. This will put all the
+#    points within the area of the central axis, but not neccessarily
+#    in the right order due to the meandering of the original path.
+# 6. Redo the step (3) with the current set and position of control
+#    points, generating a good backbone path.
+
 import math
 import random
 
