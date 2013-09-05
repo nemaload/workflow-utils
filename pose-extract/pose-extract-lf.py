@@ -203,20 +203,28 @@ def gradientAscent(edgedists, edgedirs, point):
     move along the A-P axis. Therefore, we instead move _from_ the nearest
     edge.
     """
-    #print edgedists[tuple(point)], edgedirs[tuple(point)], max(abs(edgedirs[tuple(point)]))
-    walkDir = edgedirs[tuple(point)] / max(abs(edgedirs[tuple(point)]))
-    #print point, walkDir
-    bestDist = edgedists[tuple(point)]
-    bestPoint = point
+    bestDist = None
+    bestPoint = None
     # From now on, point may be a non-integer; however we always return an int
-    while point > [0,0] and point < edgedists.shape:
+    max_steps = max(edgedists.shape)
+    steps = 0
+    while point > [0,0] and point < edgedists.shape and steps < max_steps:
         intpoint = [round(point[0]), round(point[1])]
-        if edgedists[tuple(intpoint)] < bestDist:
+        # 2x2 interpolation of distance from surrounding points
+        beta_y = math.ceil(point[0]) - point[0]
+        beta_x = math.ceil(point[1]) - point[1]
+        curdist = (beta_y * beta_x * edgedists[math.floor(point[0]), math.floor(point[1])]
+                   + beta_y * (1.-beta_x) * edgedists[math.floor(point[0]), math.ceil(point[1])]
+                   + (1.-beta_y) * beta_x * edgedists[math.ceil(point[0]), math.floor(point[1])]
+                   + (1.-beta_y) * (1.-beta_x) * edgedists[math.ceil(point[0]), math.ceil(point[1])]) / 4.
+        if bestDist is not None and curdist < bestDist:
             break
-        bestDist = edgedists[tuple(intpoint)]
+        bestDist = curdist
         bestPoint = intpoint
+        walkDir = edgedirs[tuple(intpoint)] / max(abs(edgedirs[tuple(intpoint)]))
         point = [point[0] - walkDir[0], point[1] - walkDir[1]]
-        #print ">", bestPoint, bestDist, point, edgedists[round(point[0]), round(point[1])]
+        #print ">", bestPoint, bestDist, walkDir, point, curdist
+        steps += 1
     return bestPoint
 
 def poseExtract(uvframe, edgedists, edgedirs):
