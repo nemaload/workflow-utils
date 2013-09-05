@@ -263,7 +263,7 @@ def poseExtract(uvframe, edgedists, edgedirs):
     # Show the backbone
     if PROGRESS_FIGURES:
         f = plt.figure()
-        imgplot = plt.imshow(uvframe, cmap=plt.cm.gray)
+        imgplot = plt.imshow(edgedists)
         display_path(f.add_subplot(111), backbone, points)
         plt.show()
 
