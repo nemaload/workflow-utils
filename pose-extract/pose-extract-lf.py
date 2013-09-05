@@ -297,6 +297,9 @@ def processFrame(i, node, ar, cw):
     uvframe[foreground_i] = 255.
     uvframe[numpy.invert(foreground_i)] = 0.
 
+    # Fill holes in "dead" regions of the worm
+    uvframe = scipy.ndimage.morphology.binary_fill_holes(uvframe)
+
     if PROGRESS_FIGURES:
         plt.figure()
         imgplot = plt.imshow(uvframe, cmap=plt.cm.gray)
