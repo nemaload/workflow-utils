@@ -283,8 +283,8 @@ def processFrame(i, node, ar, cw):
         plt.show()
 
     # Smooth twice
-    uvframe = cv2.medianBlur(uvframe, 3)
-    uvframe = cv2.medianBlur(uvframe, 3)
+    uvframe = cv2.medianBlur(uvframe, 5)
+    uvframe = cv2.medianBlur(uvframe, 5)
 
     if PROGRESS_FIGURES:
         plt.figure()
