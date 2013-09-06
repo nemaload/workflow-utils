@@ -29,6 +29,11 @@
 #    in the right order due to the meandering of the original path.
 # 6. Redo the step (3) with the current set and position of control
 #    points, generating a good backbone path.
+# 7. Perform a filtering step on the path, removing control points
+#    which are too close to neighboring control points and inserting
+#    additional control points in-between each pair of points (centered
+#    to the middle of the worm body, too). This idea also comes from
+#    Peng et al.
 
 import math
 import random
@@ -55,6 +60,12 @@ import tables
 
 PROGRESS_FIGURES = False
 NUM_SAMPLES = 160
+# Minimum distance between path control points; if two control
+# points are nearer than this to each other, that is fixed during filtering.
+# In a later stage, control points are added at pair mid-points, so
+# effective minimum distance at the end of the algorithm may be as
+# low as MIN_DISTANCE/2.
+MIN_POINT_DISTANCE = 4.
 
 
 def print_mask(mask):
@@ -231,6 +242,44 @@ def gradientAscent(edgedists, edgedirs, point):
         steps += 1
     return bestPoint
 
+def filterPath(path, points, edgedists, edgedirs, uvframe):
+    """
+    If two successive points in the path are nearer than MIN_POINT_DISTANCE,
+    one of them is removed. Then, an extra point is added inbetween each
+    pair of points and gradient-ascended to the middle of the worm.
+    """
+    # Remove points that are too close
+    i = 0
+    while i < len(path)-1:
+        point0 = points[path[i]]
+        point1 = points[path[i+1]]
+        distance = (point0[0] - point1[0]) ** 2 + (point0[1] - point1[1]) ** 2
+        if distance < MIN_POINT_DISTANCE ** 2:
+            # Make sure we never remove the (currently) tip control points
+            if i == 0:
+                ofs = 1
+            elif i == len(path)-1:
+                ofs = 0
+            else:
+                ofs = random.randint(0, 1)
+            path.pop(i + ofs)
+        else:
+            i += 1
+
+    # Insert points in midway
+    newpath = []
+    for i in range(len(path)-1):
+        point0 = points[path[i]]
+        point1 = points[path[i+1]]
+        point_mid = [round((point0[0] + point1[0]) / 2), round((point0[1] + point1[1]) / 2)]
+        point_mid = gradientAscent(edgedists, edgedirs, point_mid)
+
+        points.append(point_mid)
+        newpath.append(path[i])
+        newpath.append(len(points)-1)
+    newpath.append(path[len(path)-1])
+    return newpath
+
 def poseExtract(uvframe, edgedists, edgedirs):
     """
     Output a sequence of coordinates of pose curve control points.
@@ -263,6 +312,17 @@ def poseExtract(uvframe, edgedists, edgedirs):
     # Redo the complete graph - MST - diameter with final graph
     # to get straight tracing
     backbone = pointsToBackbone(points, uvframe)
+
+    # Show the backbone
+    if PROGRESS_FIGURES:
+        f = plt.figure()
+        imgplot = plt.imshow(edgedists)
+        display_path(f.add_subplot(111), backbone, points)
+        plt.show()
+
+    # Filter the path by removing points too close to each other
+    # and inserting points midway (gradient-ascended while at it).
+    backbone = filterPath(backbone, points, edgedists, edgedirs, uvframe)
 
     # Show the backbone
     if PROGRESS_FIGURES:
