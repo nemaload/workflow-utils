@@ -34,6 +34,9 @@
 #    additional control points in-between each pair of points (centered
 #    to the middle of the worm body, too). This idea also comes from
 #    Peng et al.
+# 8. Extend the path with points aligned with tips (or image edge)
+#    of the worm, to provide a frame of reference for further work with
+#    the body of the worm.
 
 import math
 import random
@@ -292,6 +295,60 @@ def filterPath(path, points, edgedists, edgedirs, uvframe):
     newpath.append(path[len(path)-1])
     return newpath
 
+def extendToTip(ipoint0, ipoint1, points, edgedists, edgedirs, uvframe):
+    """
+    Return a point at a tip (boundary) of the worm or an edge of the picture,
+    walking from point1 in the (point0->point1) direction, maximizing
+    distance from point1 in a per-step 45\deg cone.
+    """
+    point0 = points[ipoint0]
+    point1 = points[ipoint1]
+    walkDir = numpy.array([point1[0] - point0[0], point1[1] - point0[1]])
+    walkDir /= max(abs(walkDir)) # normalize to 1-pixel stepping
+    walkDirSq = walkDir[0]**2 + walkDir[1]**2
+    walkDirDim = math.sqrt(walkDirSq)
+    #print "point0", point0, "point1", point1, "walkDir", walkDir, "walkDirDim", walkDirDim
+
+    point = point1
+    dist = edgedistsInterpolate(edgedists, point)
+    while dist > 0:
+        #print "STEP", dist, point
+        if point[0] < 1. or point[1] < 1. or point[0] >= edgedists.shape[0] - 1. or point[1] >= edgedists.shape[1] - 1.:
+            break
+        nextpoint = point + walkDir
+
+        # Also consider other points that neighbor both point and
+        # nextpoint, implementing the cone search.
+        nextpointset = [nextpoint]
+        nextpointround = [round(nextpoint[0]), round(nextpoint[1])]
+        if nextpoint[0] == 0:
+            yset = [-walkDirDim, walkDirDim]
+        else:
+            yset = [nextpoint[0]-point[0], 0]
+        if nextpoint[1] == 0:
+            xset = [-walkDirDim, walkDirDim]
+        else:
+            xset = [nextpoint[1]-point[1], 0]
+        nextpointset += [nextpoint + [y,x] for x in xset for y in yset]
+        nextpoints = []
+        for p in nextpointset:
+            p_edgedist = edgedistsInterpolate(edgedists, p)
+            #print "considering", p, p_edgedist
+            if p_edgedist == 0 or p_edgedist is None:
+                # We are at the border, bye!
+                return point
+            nextpoints.append((p, p_edgedist))
+
+        # Pick the one furthest away from the edge
+        (point, dist) = max(nextpoints, key = lambda x: x[1])
+        #print point, dist, "---", nextpoints
+
+    return point
+
+def addPoint(points, coord):
+    points.append(coord)
+    return len(points)-1
+
 def poseExtract(uvframe, edgedists, edgedirs):
     """
     Output a sequence of coordinates of pose curve control points.
@@ -335,6 +392,13 @@ def poseExtract(uvframe, edgedists, edgedirs):
     # Filter the path by removing points too close to each other
     # and inserting points midway (gradient-ascended while at it).
     backbone = filterPath(backbone, points, edgedists, edgedirs, uvframe)
+
+    # Add some extra control points at both tips of the worm (or a tip and an edge)
+    backbone = [
+            addPoint(points, extendToTip(backbone[1], backbone[0], points, edgedists, edgedirs, uvframe))
+        ] + backbone + [
+            addPoint(points, extendToTip(backbone[len(backbone)-2], backbone[len(backbone)-1], points, edgedists, edgedirs, uvframe))
+        ]
 
     # Show the backbone
     if PROGRESS_FIGURES:
