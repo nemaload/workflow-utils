@@ -202,6 +202,7 @@ def gradientAscent(edgedists, edgedirs, point):
     make all the points converge in some middle point; we do not want to
     move along the A-P axis. Therefore, we instead move _from_ the nearest
     edge.
+    Note that points may not have integer coordinates after a gradientAscent.
     """
     bestDist = None
     bestPoint = None
@@ -223,7 +224,7 @@ def gradientAscent(edgedists, edgedirs, point):
         if bestDist is not None and curdist < bestDist:
             break
         bestDist = curdist
-        bestPoint = intpoint
+        bestPoint = point
         walkDir = edgedirs[tuple(intpoint)] / max(abs(edgedirs[tuple(intpoint)]))
         point = [point[0] - walkDir[0], point[1] - walkDir[1]]
         #print ">", bestPoint, bestDist, walkDir, point, curdist
