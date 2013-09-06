@@ -208,7 +208,10 @@ def gradientAscent(edgedists, edgedirs, point):
     # From now on, point may be a non-integer; however we always return an int
     max_steps = max(edgedists.shape)
     steps = 0
-    while point > [0,0] and point < edgedists.shape and steps < max_steps:
+    while steps < max_steps:
+        if point < [0,0] or point >= edgedists.shape:
+            # Throw away points that walk out of the picture
+            return None
         intpoint = [round(point[0]), round(point[1])]
         # 2x2 interpolation of distance from surrounding points
         beta_y = math.ceil(point[0]) - point[0]
