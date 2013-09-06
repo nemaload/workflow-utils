@@ -236,6 +236,9 @@ def gradientAscent(edgedists, edgedirs, point):
             break
         bestDist = curdist
         bestPoint = point
+        if max(abs(edgedirs[tuple(intpoint)])) == 0:
+            # We might have been at a ledge, now we are out of the worm; discard
+            return None
         walkDir = edgedirs[tuple(intpoint)] / max(abs(edgedirs[tuple(intpoint)]))
         point = [point[0] - walkDir[0], point[1] - walkDir[1]]
         #print ">", bestPoint, bestDist, walkDir, point, curdist
