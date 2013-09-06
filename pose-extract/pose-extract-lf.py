@@ -410,9 +410,9 @@ def poseExtract(uvframe, edgedists, edgedirs):
     # TODO: Extend tips by slowest-rate gradient descent
     return map(lambda i: points[i], backbone)
 
-def printTSV(backbone):
+def printTSV(backbone, edgedists):
     for point in backbone:
-        print 0, point[0], point[1]
+        print 0, point[0], point[1], edgedists[tuple(point)]
 
 def processFrame(i, node, ar, cw):
     uvframe = hdf5lflib.compute_uvframe(node, ar, cw)
@@ -458,7 +458,7 @@ def processFrame(i, node, ar, cw):
     backbone = poseExtract(uvframe, edgedists, edgedirs)
 
     # Convert to TSV and output
-    printTSV(backbone)
+    printTSV(backbone, edgedists)
 
 def processFile(filename, frameNo):
     h5file = tables.open_file(filename, mode = "r")

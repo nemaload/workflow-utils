@@ -12,8 +12,8 @@ fi
 
 echo '{"bbpoints":['
 delim=""
-while read z y x; do
-	echo " $delim[$x,$y,$z]"
+while read z y x d; do
+	echo " $delim[$x,$y,$z,$d]"
 	delim=,
 done
 echo ']}'
