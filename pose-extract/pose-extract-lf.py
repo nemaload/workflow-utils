@@ -206,6 +206,21 @@ def pointsToBackbone(points, uvframe):
 
     return backbone
 
+def edgedistsInterpolate(edgedists, point):
+    """
+    2x2 interpolation of distance for non-integer point coordinates.
+    """
+    beta_y = math.ceil(point[0]) - point[0]
+    beta_x = math.ceil(point[1]) - point[1]
+    try:
+        curdist = (beta_y * beta_x * edgedists[math.floor(point[0]), math.floor(point[1])]
+                   + beta_y * (1.-beta_x) * edgedists[math.floor(point[0]), math.ceil(point[1])]
+                   + (1.-beta_y) * beta_x * edgedists[math.ceil(point[0]), math.floor(point[1])]
+                   + (1.-beta_y) * (1.-beta_x) * edgedists[math.ceil(point[0]), math.ceil(point[1])]) / 4.
+    except IndexError:
+        return None
+    return curdist
+
 def gradientAscent(edgedists, edgedirs, point):
     """
     We want to move the point along the gradient from the edge of the worm
@@ -225,13 +240,7 @@ def gradientAscent(edgedists, edgedirs, point):
             # Throw away points that walk out of the picture
             return None
         intpoint = [round(point[0]), round(point[1])]
-        # 2x2 interpolation of distance from surrounding points
-        beta_y = math.ceil(point[0]) - point[0]
-        beta_x = math.ceil(point[1]) - point[1]
-        curdist = (beta_y * beta_x * edgedists[math.floor(point[0]), math.floor(point[1])]
-                   + beta_y * (1.-beta_x) * edgedists[math.floor(point[0]), math.ceil(point[1])]
-                   + (1.-beta_y) * beta_x * edgedists[math.ceil(point[0]), math.floor(point[1])]
-                   + (1.-beta_y) * (1.-beta_x) * edgedists[math.ceil(point[0]), math.ceil(point[1])]) / 4.
+        curdist = edgedistsInterpolate(edgedists, point)
         if bestDist is not None and curdist < bestDist:
             break
         bestDist = curdist
