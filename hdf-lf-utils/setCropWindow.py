@@ -9,9 +9,12 @@
 # this tool's parameters from values measured on the rotated version
 # (e.g. as shown as nemashow), pass them as:
 #
-#   setCropWindow.py HDF5FILE $((2560-Y1)) X0  $((2160-Y0)) X1
+#   setCropWindow.py HDF5FILE $((2160-Y1)) X0  $((2560-Y0)) X1
 #
 # (Assuming pre-rotation dataset dimensions 2160x2560.)
+#
+# You can verify the crop window visually with the hdf5display.py tool
+# (which shows the unrotated image).
 
 import h5py
 import sys
