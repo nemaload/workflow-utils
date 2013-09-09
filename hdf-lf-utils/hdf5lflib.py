@@ -29,13 +29,11 @@ def compute_maxu(imageGroup):
     return (maxu, maxu_explicit)
 
 
-def lenslets_offset2corner(ar):
+def lenslets_offset2corner(ar, corner):
     """
     Walk from the lenslets offset point to the point of the grid
     nearest to the top left corner.
     """
-    corner = [ar._v_attrs['y_offset'], ar._v_attrs['x_offset']]
-
     changed = True
     while changed:
         changed = False
@@ -72,11 +70,13 @@ def compute_uvframe(node, ar, cw, ofs_U = 0., ofs_V = 0.):
 
     (right_dx, right_dy) = ar._v_attrs['right_dx'], ar._v_attrs['right_dy']
     (down_dx, down_dy) = ar._v_attrs['down_dx'], ar._v_attrs['down_dy']
+    corner = [ar._v_attrs['y_offset'], ar._v_attrs['x_offset']]
     if cw is not None:
         (x0, y0, x1, y1) = (cw._v_attrs[j] for j in ('x0', 'y0', 'x1', 'y1'))
         imgdata = imgdata[y0:y1 , x0:x1]
+        corner = [corner[0] - y0, corner[1] - x0]
 
-    corner = lenslets_offset2corner(ar)
+    corner = lenslets_offset2corner(ar, corner)
     gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
 
     uvframe = numpy.zeros(shape=(gridsize[1], gridsize[0]), dtype='short')
