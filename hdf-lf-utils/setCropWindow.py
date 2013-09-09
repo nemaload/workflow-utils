@@ -14,7 +14,9 @@
 # (Assuming pre-rotation dataset dimensions 2160x2560.)
 #
 # You can verify the crop window visually with the hdf5display.py tool
-# (which shows the unrotated image).
+# (which shows the unrotated image). You can also use hdf5display.py
+# to determine directly the coordinates to pass to setCropWindow.py
+# without further modification.
 
 import h5py
 import sys
