@@ -2,6 +2,7 @@
 # working with HDF5 lightfield files.
 
 import numpy
+import math
 
 def compute_maxu(imageGroup):
     """
@@ -37,17 +38,17 @@ def lenslets_offset2corner(ar, corner):
     changed = True
     while changed:
         changed = False
-        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dx'] and corner[1] > ar._v_attrs['down_dy']:
-            corner[0] -= ar._v_attrs['down_dx']
-            corner[1] -= ar._v_attrs['down_dy']
+        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dy'] and corner[1] > ar._v_attrs['down_dx']:
+            corner[0] -= ar._v_attrs['down_dy']
+            corner[1] -= ar._v_attrs['down_dx']
             changed = True
-        if corner[0] > ar._v_attrs['right_dx'] and corner[1] > ar._v_attrs['right_dy']:
-            corner[0] -= ar._v_attrs['right_dx']
-            corner[1] -= ar._v_attrs['right_dy']
+        if corner[0] > ar._v_attrs['right_dy'] and corner[1] > ar._v_attrs['right_dx']:
+            corner[0] -= ar._v_attrs['right_dy']
+            corner[1] -= ar._v_attrs['right_dx']
             changed = True
-        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dx'] and corner[1] > ar._v_attrs['down_dy']:
-            corner[0] -= ar._v_attrs['down_dx']
-            corner[1] -= ar._v_attrs['down_dy']
+        if corner[1] > corner[0] and corner[0] > ar._v_attrs['down_dy'] and corner[1] > ar._v_attrs['down_dx']:
+            corner[0] -= ar._v_attrs['down_dy']
+            corner[1] -= ar._v_attrs['down_dx']
             changed = True
     # FIXME: Note that we might get stuck at a point where we e.g. still have
     # some room to go many steps up at the cost of going one step right.
@@ -74,19 +75,22 @@ def compute_uvframe(node, ar, cw, ofs_U = 0., ofs_V = 0.):
     if cw is not None:
         (x0, y0, x1, y1) = (cw._v_attrs[j] for j in ('x0', 'y0', 'x1', 'y1'))
         imgdata = imgdata[y0:y1 , x0:x1]
-        corner = [corner[0] - y0, corner[1] - x0]
+        corner = [corner[0] - x0, corner[1] - y0]
+
+    # Before we interpret autorectification, we need to transpose the image
+    imgdata = numpy.swapaxes(imgdata, 0, 1)
 
     corner = lenslets_offset2corner(ar, corner)
-    gridsize = (int(imgdata.shape[0] / ar._v_attrs['down_dy']), int(imgdata.shape[1] / ar._v_attrs['right_dx']))
+    gridsize = (int(math.floor(imgdata.shape[0] / ar._v_attrs['down_dy'])), int(math.floor(imgdata.shape[1] / ar._v_attrs['right_dx'])))
 
-    uvframe = numpy.zeros(shape=(gridsize[1], gridsize[0]), dtype='short')
+    uvframe = numpy.zeros(shape=(gridsize[0], gridsize[1]), dtype='short')
 
     for y in range(int(gridsize[0])):
         for x in range(int(gridsize[1])):
             cx = int(round(corner[1] + x * right_dx + y * down_dx + ofs_U))
             cy = int(round(corner[0] + x * right_dy + y * down_dy + ofs_V))
             try:
-                uvframe[gridsize[1]-1 - x][y] = imgdata[cy][cx]
+                uvframe[gridsize[0]-1 - y][x] = imgdata[cy][cx]
                 #print cx, cy, gridsize[1]-1 - x, y, int(uvframe[gridsize[1]-1 - x][y])
             except IndexError:
                 #print cx, cy, gridsize[1]-1 - x, y, '---'
