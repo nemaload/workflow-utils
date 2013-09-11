@@ -25,7 +25,10 @@ filename = sys.argv[1]
 
 for objpath in sys.argv[2:]:
     h5file = tables.open_file(filename, mode = "r")
-    cw = h5file.get_node('/', '/cropwindow')
+    try:
+        cw = h5file.get_node('/', '/cropwindow')
+    except tables.NoSuchNodeError:
+        cw = None
 
     node = h5file.get_node('/', objpath)
     data = node.read()

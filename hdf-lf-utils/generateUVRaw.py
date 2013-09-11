@@ -34,7 +34,10 @@ def processFrameUV(i, node, outputBase, ofs_U, ofs_V, ar, cw, imgfmt):
 def processFileUV(filename, outputDirectoryPath, ofs_U, ofs_V, imgfmt):
     h5file = tables.open_file(filename, mode = "r")
     ar = h5file.get_node('/', '/autorectification')
-    cw = h5file.get_node('/', '/cropwindow')
+    try:
+        cw = h5file.get_node('/', '/cropwindow')
+    except tables.NoSuchNodeError:
+        cw = None
     outputBase = outputDirectoryPath + os.path.splitext(os.path.basename(filename))[0]
     for (i, node) in sorted(h5file.get_node('/', '/images')._v_children.items(), key = lambda j: int(j[0])):
         print outputBase, i

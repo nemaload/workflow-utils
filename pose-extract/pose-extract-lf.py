@@ -463,7 +463,10 @@ def processFrame(i, node, ar, cw):
 def processFile(filename, frameNo):
     h5file = tables.open_file(filename, mode = "r")
     ar = h5file.get_node('/', '/autorectification')
-    cw = h5file.get_node('/', '/cropwindow')
+    try:
+        cw = h5file.get_node('/', '/cropwindow')
+    except tables.NoSuchNodeError:
+        cw = None
     processFrame(frameNo, h5file.get_node('/', '/images/' + str(frameNo)), ar, cw)
     return True
 
