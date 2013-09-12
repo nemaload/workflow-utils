@@ -55,6 +55,18 @@ def lenslets_offset2corner(ar, corner):
 
     return corner
 
+def pointInterpolate(imgdata, point):
+    """
+    2x2 interpolation of point brightness for non-integer point coordinates.
+    """
+    beta_y = math.ceil(point[0]) - point[0]
+    beta_x = math.ceil(point[1]) - point[1]
+    value = (beta_y * beta_x * imgdata[math.floor(point[0]), math.floor(point[1])]
+             + beta_y * (1.-beta_x) * imgdata[math.floor(point[0]), math.ceil(point[1])]
+             + (1.-beta_y) * beta_x * imgdata[math.ceil(point[0]), math.floor(point[1])]
+             + (1.-beta_y) * (1.-beta_x) * imgdata[math.ceil(point[0]), math.ceil(point[1])])
+    return value
+
 
 def compute_uvframe(node, ar, cw, ofs_U = 0., ofs_V = 0.):
     """
@@ -87,13 +99,12 @@ def compute_uvframe(node, ar, cw, ofs_U = 0., ofs_V = 0.):
 
     for y in range(int(gridsize[0])):
         for x in range(int(gridsize[1])):
-            cx = int(round(corner[1] + x * right_dx + y * down_dx + ofs_U))
-            cy = int(round(corner[0] + x * right_dy + y * down_dy + ofs_V))
+            cx = corner[1] + x * right_dx + y * down_dx + ofs_U
+            cy = corner[0] + x * right_dy + y * down_dy + ofs_V
             try:
-                uvframe[gridsize[0]-1 - y][x] = imgdata[cy][cx]
-                #print cx, cy, gridsize[1]-1 - x, y, int(uvframe[gridsize[1]-1 - x][y])
+                uvframe[gridsize[0]-1 - y][x] = pointInterpolate(imgdata, [cy, cx])
+                # print 'src', [cy, cx], 'dst', [gridsize[0]-1 - y, x], ' := ', uvframe[gridsize[0]-1 - y][x]
             except IndexError:
-                #print cx, cy, gridsize[1]-1 - x, y, '---'
                 pass
 
     return uvframe
