@@ -33,6 +33,6 @@ images = db.images
 basename = os.path.basename(filename)
 images.update({'baseName': basename}, {'$set': {
     'cw_x0': int(cw.attrs['x0']),
-    'cw_x1': int(cw.attrs['y0']),
-    'cw_y0': int(cw.attrs['x1']),
+    'cw_x1': int(cw.attrs['x1']),
+    'cw_y0': int(cw.attrs['y0']),
     'cw_y1': int(cw.attrs['y1'])}})
